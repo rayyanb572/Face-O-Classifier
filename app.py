@@ -2,11 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for, send_from_
 import os
 import shutil
 import glob
-import requests
+import gdown
 from werkzeug.utils import secure_filename
 from classify_faces import classify_faces
 from flask_session import Session
-from google_drive_downloader import GoogleDriveDownloader as gdd
 
 # Hapus semua session saat aplikasi dimulai
 session_files = glob.glob('flask_session/*')
@@ -81,22 +80,21 @@ def download_gdrive():
     if not gdrive_link:
         return jsonify({'error': 'Google Drive link is required'}), 400
     
-    file_id = gdrive_link.split('/d/')[1].split('/')[0] if '/d/' in gdrive_link else None
-    if not file_id:
-        return jsonify({'error': 'Invalid Google Drive link'}), 400
-    
-    clear_folder(app.config['DOWNLOAD_FOLDER'])
-    download_path = os.path.join(app.config['DOWNLOAD_FOLDER'], 'downloaded_folder.zip')
-    gdd.download_file_from_google_drive(file_id=file_id, dest_path=download_path, unzip=True)
-    
-    extracted_folder = os.path.join(app.config['DOWNLOAD_FOLDER'], 'extracted')
-    os.makedirs(extracted_folder, exist_ok=True)
-    
-    output_path = classify_faces(extracted_folder)
-    session['output_path'] = output_path
-    session['upload_complete'] = True
-    
-    return jsonify({'message': 'Download and processing complete', 'output_path': output_path})
+    try:
+        clear_folder(app.config['DOWNLOAD_FOLDER'])
+        download_path = os.path.join(app.config['DOWNLOAD_FOLDER'], 'downloaded_folder.zip')
+        gdown.download(gdrive_link, download_path, quiet=False)
+        
+        extracted_folder = os.path.join(app.config['DOWNLOAD_FOLDER'], 'extracted')
+        os.makedirs(extracted_folder, exist_ok=True)
+        
+        output_path = classify_faces(extracted_folder)
+        session['output_path'] = output_path
+        session['upload_complete'] = True
+        
+        return jsonify({'message': 'Download and processing complete', 'output_path': output_path})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/preview')
 def preview():
