@@ -4,7 +4,7 @@ werkzeug
 numpy
 tensorflow
 opencv-python
-ultralytics==8.0.20
+ultralytics
 keras-facenet
 gdown
 requests
