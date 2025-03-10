@@ -1,13 +1,12 @@
 Flask
 flask-session
+opencv-python-headless
 werkzeug
 numpy
 tensorflow
-opencv-python
 ultralytics
 keras-facenet
 gdown
 requests
 glob2
 gunicorn
-libgl1-mesa-glx
