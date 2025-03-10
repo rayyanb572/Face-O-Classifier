@@ -10,3 +10,4 @@ gdown
 requests
 glob2
 gunicorn
+libgl1-mesa-glx
