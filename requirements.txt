@@ -7,6 +7,5 @@ keras-facenet
 ultralytics
 gdown
 requests
-shutil
 glob2
 gunicorn
