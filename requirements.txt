@@ -2,9 +2,10 @@ Flask
 flask-session
 werkzeug
 numpy
-opencv-python
+tensorflow
+opencv-python-headless
+ultralytics==8.0.20
 keras-facenet
-ultralytics
 gdown
 requests
 glob2
