@@ -3,7 +3,7 @@ flask-session
 werkzeug
 numpy
 tensorflow
-opencv-python-headless
+opencv-python
 ultralytics==8.0.20
 keras-facenet
 gdown
