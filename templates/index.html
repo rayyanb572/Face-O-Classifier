@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face'O'Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="index-page">
+    <div class="index-container">
+        <h1>Face'O'Classifier</h1>
+        
+        <!-- Form Upload Lokal -->
+        <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="upload-container">
+                <label for="folder">Upload Folder:</label>
+                <input type="file" name="folder" id="folder" webkitdirectory directory>
+                <button type="submit">Upload</button>
+            </div>
+        </form>
+
+        <!-- Form Download dari Google Drive -->
+        <form id="gdriveForm" action="/download_gdrive" method="POST">
+            <div class="upload-container">
+                <label for="gdrive_link">Google Drive Link:</label>
+                <input type="text" name="gdrive_link" id="gdrive_link" placeholder="Paste Google Drive link here">
+                <button type="submit">Download & Process</button>
+            </div>
+        </form>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="spinner-container" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing folder: <strong id="processingFolder"></strong></p>
+        </div>
+
+        <!-- Hasil Proses -->
+        {% if output_path %}
+        <div id="results">
+            {% if original_folder_name %}
+            <p>Folder: <strong>{{ original_folder_name }}</strong></p>
+            {% endif %}
+            
+            <p>Processing complete.</p>
+            <a href="{{ url_for('preview') }}"><button>Lihat Preview</button></a>
+            <button type="button" onclick="openOutput()">Cek Hasil (File Manager)</button>
+            <a href="{{ url_for('download_output') }}"><button>Download Hasil</button></a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        document.getElementById("uploadForm").onsubmit = function() {
+            let folderInput = document.getElementById("folder");
+            if (folderInput.files.length > 0) {
+                let folderName = folderInput.files[0].webkitRelativePath.split('/')[0];
+                document.getElementById("processingFolder").innerText = folderName;
+            }
+            document.getElementById("loadingSpinner").style.display = "block";
+            let resultsDiv = document.getElementById("results");
+            if (resultsDiv) {
+                resultsDiv.style.display = "none";
+            }
+        };
+
+        function openOutput() {
+            fetch('/open_output')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Output folder opened successfully');
+                    } else {
+                        console.error('Failed to open output folder');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
