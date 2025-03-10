@@ -5,7 +5,7 @@ numpy
 opencv-python
 keras-facenet
 ultralytics
-google_drive_downloader
+gdown
 requests
 shutil
 glob2
