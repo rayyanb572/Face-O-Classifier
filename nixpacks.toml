@@ -1,2 +1,13 @@
 [phases.setup]
-nixPkgs = ["libGL", "glib"]
+nixPkgs = ["python312", "libGL", "glib"]
+
+[phases.build]
+cmds = [
+  "python3 -m venv /opt/venv",
+  ". /opt/venv/bin/activate",
+  "pip install --upgrade pip",
+  "pip install -r requirements.txt"
+]
+
+[phases.start]
+cmd = "gunicorn -b 0.0.0.0:5000 app:app"
