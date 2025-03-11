@@ -1,12 +1,2 @@
 [phases.setup]
-nixPkgs = ["python311", "libGL", "glib"]
-
-[phases.build]
-cmds = [
-  "python3 -m ensurepip --default-pip",
-  "pip install --upgrade pip",
-  "pip install -r requirements.txt"
-]
-
-[phases.start]
-cmd = "gunicorn -b 0.0.0.0:5000 app:app"
+nixPkgs = ["libGL", "glib"]
