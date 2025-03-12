@@ -1,100 +1,83 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session
 import os
 import shutil
-import glob
-import gdown
 from werkzeug.utils import secure_filename
 from classify_faces import classify_faces
 from flask_session import Session
+import glob
 
-# Hapus semua session saat aplikasi dimulai
+# Hapus semua session yang tersimpan saat aplikasi baru dijalankan
 session_files = glob.glob('flask_session/*')
 for file in session_files:
     os.remove(file)
 
 app = Flask(__name__)
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_DIR'] = 'flask_session'
-app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_TYPE'] = 'filesystem'  # Simpan session di file
+app.config['SESSION_FILE_DIR'] = 'flask_session'  # Folder penyimpanan session
+app.config['SESSION_PERMANENT'] = False  # Non-permanen agar mudah dihapus
 Session(app)
-app.secret_key = "your_secret_key"
+app.secret_key = "your_secret_key"  # Kunci untuk sesi
 
-UPLOAD_FOLDER = '/tmp/uploads'
-OUTPUT_FOLDER = '/tmp/output_test'
-DOWNLOAD_FOLDER = '/tmp/downloads'
+UPLOAD_FOLDER = 'uploads'
+OUTPUT_FOLDER = 'output_test'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
-app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
 
 def clear_folder(folder_path):
+    """Menghapus folder lama dan membuat ulang folder kosong"""
     if os.path.exists(folder_path):
         shutil.rmtree(folder_path)
     os.makedirs(folder_path, exist_ok=True)
 
 @app.route('/')
 def index():
-    if not session.get('upload_complete'):
-        session.clear()
+    if not session.get('upload_complete'):  # Jika belum ada proses upload
+        session.clear()  # Reset session agar halaman awal bersih
+
     return render_template('index.html', 
-                           output_path=session.get('output_path'), 
-                           original_folder_name=session.get('original_folder_name'))
+                       output_path=session.get('output_path'), 
+                       original_folder_name=session.get('original_folder_name'))  # ✅ Kirim variabel ke template
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    """Menghandle upload folder dan melakukan klasifikasi wajah"""
     if 'folder' not in request.files:
         return redirect(request.url)
-    
+
     folder = request.files.getlist('folder')
     if not folder:
         return redirect(request.url)
-    
+
+    # 🔄 Reset session sebelum memproses folder baru
     session.clear()
     session.modified = True
+
+    # Menghapus folder sebelumnya
     clear_folder(app.config['UPLOAD_FOLDER'])
-    
+
     first_file_path = folder[0].filename
     uploaded_folder_name = os.path.dirname(first_file_path) or 'uploaded_folder'
-    secure_folder_name = secure_filename(uploaded_folder_name)
+    secure_folder_name = secure_filename(uploaded_folder_name)  # Nama aman untuk penyimpanan
     folder_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_folder_name)
     os.makedirs(folder_path, exist_ok=True)
-    
+
     for file in folder:
         if file.filename:
             filename = secure_filename(os.path.basename(file.filename))
             file.save(os.path.join(folder_path, filename))
-    
-    session['original_folder_name'] = uploaded_folder_name
-    session['folder_name'] = secure_folder_name
-    
+
+    # ✅ Simpan nama asli dan nama aman di session
+    session['original_folder_name'] = uploaded_folder_name  # Menyimpan nama asli
+    session['folder_name'] = secure_folder_name  # Nama aman untuk penyimpanan
+
+    # Proses klasifikasi wajah
     output_path = classify_faces(folder_path)
+
+    # ✅ Simpan hasil proses di session setelah klasifikasi selesai
     session['output_path'] = output_path
     session['upload_complete'] = True
-    
-    return redirect(url_for('index'))
 
-@app.route('/download_gdrive', methods=['POST'])
-def download_gdrive():
-    data = request.json
-    gdrive_link = data.get('gdrive_link')
-    
-    if not gdrive_link:
-        return jsonify({'error': 'Google Drive link is required'}), 400
-    
-    try:
-        clear_folder(app.config['DOWNLOAD_FOLDER'])
-        download_path = os.path.join(app.config['DOWNLOAD_FOLDER'], 'downloaded_folder.zip')
-        gdown.download(gdrive_link, download_path, quiet=False)
-        
-        extracted_folder = os.path.join(app.config['DOWNLOAD_FOLDER'], 'extracted')
-        os.makedirs(extracted_folder, exist_ok=True)
-        
-        output_path = classify_faces(extracted_folder)
-        session['output_path'] = output_path
-        session['upload_complete'] = True
-        
-        return jsonify({'message': 'Download and processing complete', 'output_path': output_path})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return redirect(url_for('index'))
 
 @app.route('/preview')
 def preview():
@@ -107,23 +90,15 @@ def preview():
 def send_image(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
 
-@app.route('/download_result')
-def download_result():
-    output_path = session.get('output_path')
-    if output_path and os.path.exists(output_path):
-        shutil.make_archive(output_path, 'zip', output_path)
-        return send_from_directory(os.path.dirname(output_path), os.path.basename(output_path) + '.zip', as_attachment=True)
-    return jsonify({'error': 'No output available'}), 404
-
 @app.route('/open_output')
 def open_output():
     output_path = session.get('output_path')
     if output_path and os.path.exists(output_path):
         try:
-            os.startfile(output_path)
+            os.startfile(output_path)  # Windows
         except Exception:
-            os.system(f'xdg-open "{output_path}"')
-    return '', 204
+            os.system(f'xdg-open "{output_path}"')  # Linux/macOS
+    return '', 204  # ✅ Tidak mereset halaman (No Content)
 
 if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='127.0.0.1', port=5000)

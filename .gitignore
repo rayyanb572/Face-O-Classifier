@@ -1,2 +1,6 @@
 tempCodeRunnerFile.py
 flask_session
+.venv
+__pycache__
+uploads
+output_test
