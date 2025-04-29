@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face'O'Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="index-page">
+    <div class="index-container">
+        <h1>Face'O'Classifier</h1>
+
+        <!-- Form Upload -->
+        <form id="uploadForm" class="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="upload-container">
+                <label for="zipfile">Upload ZIP File:</label>
+                <input type="file" name="zipfile" id="zipfile" accept=".zip" required>
+                {% if not output_path %}
+                <button type="button" id="uploadButton" onclick="startUpload()">Upload</button>
+                {% endif %}
+            </div>
+            
+            <!-- Progress container -->
+            <div id="progressContainer" style="display: none; margin-top: 15px; width: 100%;">
+                <div class="progress-labels">
+                    <span id="statusText">Preparing upload...</span>
+                    <span id="percentageText">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <p id="progressDetails" style="font-size: 0.85em; margin-top: 5px;">Size: <span id="uploadedSize">0 KB</span> / <span id="totalSize">0 KB</span></p>
+            </div>
+        </form>
+        
+        <!-- Loading Spinner untuk tahap pemrosesan -->
+        <div id="loadingSpinner" class="spinner-container" style="display: none;">
+            <div class="spinner"></div>
+            <p>Folder : <strong id="processingFolder"></strong></p>
+            <p id="processingStep"></p>
+        </div>
+
+        <!-- Hasil Proses -->
+        {% if output_path %}
+        <div id="results">
+            {% if original_folder_name %}
+            <p>Folder : <strong class="folder-name-display">{{ original_folder_name }}</strong></p>
+            {% endif %}
+            <p>Processing Complete.</p>
+            <div class="button-group">
+                <a href="{{ url_for('preview_folders') }}">
+                    <button class="btn-small">Preview</button>
+                </a>
+                {% if zip_available %}
+                <a href="{{ url_for('download_zip') }}">
+                    <button type="button" class="btn-small">Download (ZIP)</button>
+                </a>
+                {% endif %}
+                <!-- Reset Button -->
+                <form id="resetForm" class="reset-form" action="{{ url_for('reset') }}" method="POST"
+                    onsubmit="return confirmReset()">
+                    <button type="submit" class="btn-danger">Reset</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + " B";
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+            else return (bytes / 1048576).toFixed(1) + " MB";
+        }
+        
+        function startUpload() {
+            const fileInput = document.getElementById('zipfile');
+            if (!fileInput.files.length) {
+                alert('Pilih file ZIP terlebih dahulu');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            if (!file.name.toLowerCase().endsWith('.zip')) {
+                alert('Hanya file ZIP yang diperbolehkan');
+                return;
+            }
+            
+            // Sembunyikan tombol upload dan tampilkan progress
+            document.getElementById('uploadButton').style.display = 'none';
+            document.getElementById('progressContainer').style.display = 'block';
+            
+            // Set total size info
+            document.getElementById('totalSize').textContent = formatSize(file.size);
+            
+            // Ambil nama folder dari file
+            const folderName = file.name.toLowerCase().endsWith('.zip') 
+                                ? file.name.substring(0, file.name.length - 4) 
+                                : file.name;
+            document.getElementById('processingFolder').textContent = folderName;
+            
+            // Buat form data dan tambahkan file
+            const formData = new FormData();
+            formData.append('zipfile', file);
+            
+            // Ajax request dengan tracking progress
+            const xhr = new XMLHttpRequest();
+            
+            // Event untuk update progress
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    document.getElementById('progressBar').style.width = percentComplete + '%';
+                    document.getElementById('percentageText').textContent = percentComplete + '%';
+                    document.getElementById('statusText').textContent = 'Uploading...';
+                    document.getElementById('uploadedSize').textContent = formatSize(e.loaded);
+                }
+            });
+            
+            // Event saat upload selesai
+            xhr.upload.addEventListener('load', function() {
+                document.getElementById('statusText').textContent = 'Upload complete. Processing...';
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('percentageText').textContent = '100%';
+                
+                // Ganti progress bar dengan spinner untuk tahap processing
+                setTimeout(function() {
+                    document.getElementById('progressContainer').style.display = 'none';
+                    document.getElementById('loadingSpinner').style.display = 'block';
+                    startProcessingCheck(folderName);
+                }, 500);
+            });
+            
+            // Event untuk error upload
+            xhr.upload.addEventListener('error', function() {
+                document.getElementById('statusText').textContent = 'Upload failed';
+                alert('Upload failed. Please try again.');
+            });
+            
+            // Kirim request
+            xhr.open('POST', '/upload', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        // Redirect ke halaman yang dikembalikan oleh server
+                        window.location.href = xhr.responseURL || window.location.href;
+                    } else {
+                        // Tampilkan pesan error
+                        alert('Error: ' + xhr.statusText);
+                        document.getElementById('uploadButton').style.display = 'block';
+                        document.getElementById('progressContainer').style.display = 'none';
+                    }
+                }
+            };
+            xhr.send(formData);
+        }
+        
+        // Fungsi untuk memeriksa status pemrosesan di server
+        function startProcessingCheck(folderName) {
+            // Gunakan ini jika Anda ingin menambahkan endpoint untuk pemeriksaan status
+            // Dalam versi sederhana, kita hanya menampilkan langkah-langkah processing
+            
+            const steps = [
+                "Processing..."
+            ];
+            
+            let currentStep = 0;
+            
+            // Simulasikan pengecekan status dengan mengganti teks setiap 2 detik
+            const processingInterval = setInterval(function() {
+                document.getElementById('processingStep').textContent = steps[currentStep];
+                currentStep++;
+                
+                if (currentStep >= steps.length) {
+                    clearInterval(processingInterval);
+                }
+            }, 2000);
+            
+            // Catatan: Dalam implementasi sebenarnya, Anda harus menghentikan interval 
+            // ketika server mengembalikan response (redirect) yang mengakhiri proses
+        }
+        
+        function confirmReset() {
+            return confirm("Apakah Anda yakin ingin mereset aplikasi?");
+        }
+        </script>
+</body>
+
+</html>

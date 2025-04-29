@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview Folder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="preview-page">
+    <div class="header">
+        <button class="btn-back" onclick="goBack()">&#8592;</button>
+        <div class="header-title">Folder Output List</div>
+    </div>
+    <div class="container" style="margin-top: 70px;">
+        <div class="grid-container">
+            {% if folders %}
+                {% for folder in folders %}
+                    <div class="grid-item folder-item">
+                        <a href="{{ url_for('preview_images', folder_name=folder) }}">
+                            <div class="folder-icon">📁</div>
+                            <div class="folder-name">{{ folder }}</div>
+                        </a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-message">
+                    <p>No folders found. Please make sure the classification process has been completed.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        function goBack() {
+            window.location.href = "{{ url_for('index') }}";
+        }
+    </script>
+</body>
+</html>

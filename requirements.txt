@@ -1,0 +1,7 @@
+flask
+ultralytics
+keras-facenet
+opencv-python-headless
+tqdm
+numpy
+Pillow
