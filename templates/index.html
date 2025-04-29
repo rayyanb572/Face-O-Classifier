@@ -159,8 +159,6 @@
         
         // Fungsi untuk memeriksa status pemrosesan di server
         function startProcessingCheck(folderName) {
-            // Gunakan ini jika Anda ingin menambahkan endpoint untuk pemeriksaan status
-            // Dalam versi sederhana, kita hanya menampilkan langkah-langkah processing
             
             const steps = [
                 "Processing..."
@@ -178,8 +176,6 @@
                 }
             }, 2000);
             
-            // Catatan: Dalam implementasi sebenarnya, Anda harus menghentikan interval 
-            // ketika server mengembalikan response (redirect) yang mengakhiri proses
         }
         
         function confirmReset() {
