@@ -26,9 +26,9 @@ def print_header():
 def print_menu():
     """Menampilkan menu utama"""
     print("PILIHAN MENU:")
-    print("1. Lihat Detail Database (read_embeddings.py)")
-    print("2. Update Face Embeddings")
-    print("3. Rebuild Database (rebuild_embeddings.py)")
+    print("1. (CHECK) Lihat Detail Database (read_embeddings.py)")
+    print("2. (UPDATE) Update Face Embeddings")
+    print("3. (REBUILD) Rebuild Database (rebuild_embeddings.py)")
     print("0. Keluar")
     print()
 
@@ -254,7 +254,6 @@ def main():
             
             if option == 0:
                 clear_screen()
-                print("Terima kasih telah menggunakan Face Database Manager.")
                 print("Program selesai.")
                 sys.exit(0)
             elif option == 1:
