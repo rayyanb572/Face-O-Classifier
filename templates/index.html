@@ -40,6 +40,8 @@
             <div class="spinner"></div>
             <p>Folder : <strong id="processingFolder"></strong></p>
             <p id="processingStep"></p>
+            <!-- Tombol Cancel yang ditambahkan -->
+            <button type="button" id="cancelButton" class="btn-danger" onclick="cancelProcessing()">Cancel</button>
         </div>
 
         <!-- Hasil Proses -->
@@ -178,10 +180,38 @@
             
         }
         
+        // Fungsi baru untuk membatalkan pemrosesan
+        function cancelProcessing() {
+            if (confirm("Apakah Anda yakin ingin membatalkan proses?")) {
+                // Kirim request pembatalan ke server
+                fetch('/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('processingStep').textContent = "Cancelling process...";
+                        setTimeout(() => {
+                            window.location.href = '/'; // Redirect ke halaman utama
+                        }, 1500);
+                    } else {
+                        alert('Failed to cancel: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error cancelling process');
+                });
+            }
+        }
+        
         function confirmReset() {
             return confirm("Apakah Anda yakin ingin mereset aplikasi?");
         }
-        </script>
+    </script>
 </body>
 
 </html>

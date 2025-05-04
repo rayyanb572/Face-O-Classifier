@@ -10,10 +10,28 @@ from flask_session import Session
 from werkzeug.utils import secure_filename
 from classify_faces import classify_faces
 
-# --- Membersihkan file session saat aplikasi mulai ---
+# --- Utility Function ---
+def clear_folder(folder_path):
+    """Menghapus folder lama dan membuat folder kosong baru."""
+    if os.path.exists(folder_path):
+        shutil.rmtree(folder_path)
+    os.makedirs(folder_path, exist_ok=True)
+
+# --- Membersihkan file dan folder saat aplikasi mulai ---
+# Membersihkan file session
 session_files = glob.glob('flask_session/*')
 for file in session_files:
     os.remove(file)
+
+# Membersihkan folder uploads dan zip
+clear_folder('uploads')
+clear_folder('zip')
+
+# Membersihkan folder (Classified) sebelumnya
+classified_folders = glob.glob('(Classified)*')
+for folder in classified_folders:
+    if os.path.isdir(folder):
+        shutil.rmtree(folder)
 
 # --- Konfigurasi Flask App ---
 app = Flask(__name__)
@@ -24,13 +42,6 @@ app.config['SESSION_PERMANENT'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ZIP_FOLDER'] = 'zip'
 Session(app)
-
-# --- Utility Function ---
-def clear_folder(folder_path):
-    """Menghapus folder lama dan membuat folder kosong baru."""
-    if os.path.exists(folder_path):
-        shutil.rmtree(folder_path)
-    os.makedirs(folder_path, exist_ok=True)
 
 # --- Routes ---
 @app.route('/')
@@ -178,6 +189,16 @@ def upload_file():
     session['upload_complete'] = True
     
     return redirect(url_for('index'))
+
+@app.route('/cancel', methods=['POST'])
+def cancel_processing():
+    """Endpoint untuk membatalkan proses klasifikasi yang sedang berjalan"""
+    from classify_faces import cancel_processing
+    
+    if cancel_processing():
+        return jsonify({'status': 'success', 'message': 'Processing cancelled'})
+    return jsonify({'status': 'error', 'message': 'Failed to cancel processing'})
+
 
 @app.route('/preview_folders')
 def preview_folders():
