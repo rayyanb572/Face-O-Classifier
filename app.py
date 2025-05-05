@@ -23,11 +23,11 @@ session_files = glob.glob('flask_session/*')
 for file in session_files:
     os.remove(file)
 
-# Membersihkan folder uploads dan zip
+# Membersihkan uploads dan zip folder saat aplikasi start
 clear_folder('uploads')
 clear_folder('zip')
 
-# Membersihkan folder (Classified) sebelumnya
+# Membersihkan folder (Classified) sebelumnya yang mungkin tersisa dari crash
 classified_folders = glob.glob('(Classified)*')
 for folder in classified_folders:
     if os.path.isdir(folder):
@@ -104,25 +104,32 @@ def upload_file():
     if not file.filename.lower().endswith('.zip'):
         return "Hanya file .zip yang diperbolehkan", 400
     
-    # Reset sesi dan folder upload
+    # Reset sesi
     session.clear()
     session.modified = True
-    clear_folder(app.config['UPLOAD_FOLDER'])
+    
+    # Buat session ID unik untuk device ini
+    device_session_id = str(int(time.time())) + "_" + str(random.randint(1000, 9999))
+    session['device_session_id'] = device_session_id
+    
+    # Buat folder khusus untuk session ini di uploads
+    device_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], device_session_id)
+    os.makedirs(device_upload_folder, exist_ok=True)
     
     # Simpan file ZIP
-    zip_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
+    zip_path = os.path.join(device_upload_folder, secure_filename(file.filename))
     file.save(zip_path)
     
     # Ekstrak ZIP
     extracted_folder_name = os.path.splitext(secure_filename(file.filename))[0]
-    extracted_folder_path = os.path.join(app.config['UPLOAD_FOLDER'], extracted_folder_name)
+    extracted_folder_path = os.path.join(device_upload_folder, extracted_folder_name)
     os.makedirs(extracted_folder_path, exist_ok=True)
     
     # Import shutil di awal untuk menghindari import berulang
     import shutil
     
     # Ekstrak ZIP ke folder sementara
-    temp_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_extract')
+    temp_folder = os.path.join(device_upload_folder, 'temp_extract')
     os.makedirs(temp_folder, exist_ok=True)
     
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -175,13 +182,17 @@ def upload_file():
     if not os.listdir(extracted_folder_path):
         # Jika tidak ada file gambar yang ditemukan, beri pesan error
         shutil.rmtree(extracted_folder_path)  # Hapus folder kosong
+        shutil.rmtree(device_upload_folder)   # Hapus folder device juga
         return "Tidak ada file gambar yang ditemukan dalam ZIP", 400
     
     # Simpan info di sesi
     session['original_folder_name'] = extracted_folder_name
     session['folder_name'] = extracted_folder_name
+    session['device_folder_path'] = device_upload_folder
+    session['extracted_folder_path'] = extracted_folder_path
     
     # Mulai klasifikasi wajah
+    # Ubah: Hapus session ID dari nama folder output
     output_folder_name = "(Classified) " + extracted_folder_name
     output_folder, output_zip_path = classify_faces(extracted_folder_path, output_folder=output_folder_name)
     session['output_path'] = output_folder
@@ -276,15 +287,16 @@ def open_output():
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    """Mereset aplikasi: menghapus folder upload dan output terkait sesi saat ini saja."""
-    # Clear uploads folder for current session
-    folder_name = session.get('folder_name')
-    if folder_name:
-        folder_path = os.path.join(app.config['UPLOAD_FOLDER'], folder_name)
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
+    """Mereset aplikasi: menghapus folder upload dan output terkait sesi perangkat saat ini saja."""
+    # Hapus folder uploads khusus untuk device ini
+    device_folder_path = session.get('device_folder_path')
+    if device_folder_path and os.path.exists(device_folder_path):
+        try:
+            shutil.rmtree(device_folder_path)
+        except Exception as e:
+            print(f"Error removing device upload folder: {e}")
 
-    # Delete only the specific classified ZIP file related to current session
+    # Hapus file ZIP khusus untuk device ini
     zip_path = session.get('zip_path')
     if zip_path and os.path.exists(zip_path):
         try:
@@ -292,7 +304,7 @@ def reset():
         except Exception as e:
             print(f"Error removing zip file: {e}")
 
-    # Delete the specific output folder for current session
+    # Hapus folder output khusus untuk device ini
     output_path = session.get('output_path')
     if output_path and os.path.exists(output_path):
         try:
@@ -300,7 +312,7 @@ def reset():
         except Exception as e:
             print(f"Error removing output folder: {e}")
 
-    # Clear session data
+    # Bersihkan data sesi
     session.clear()
     return redirect(url_for('index'))
 
