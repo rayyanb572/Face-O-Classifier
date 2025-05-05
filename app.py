@@ -276,24 +276,34 @@ def open_output():
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    """Mereset aplikasi: menghapus semua folder upload, output, dan sesi."""
-    clear_folder(app.config['UPLOAD_FOLDER'])
-    clear_folder(app.config['ZIP_FOLDER'])
+    """Mereset aplikasi: menghapus folder upload dan output terkait sesi saat ini saja."""
+    # Clear uploads folder for current session
+    folder_name = session.get('folder_name')
+    if folder_name:
+        folder_path = os.path.join(app.config['UPLOAD_FOLDER'], folder_name)
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
 
-    output_path = session.get('output_path')
-    if output_path and os.path.exists(output_path):
-        shutil.rmtree(output_path)
-
+    # Delete only the specific classified ZIP file related to current session
     zip_path = session.get('zip_path')
     if zip_path and os.path.exists(zip_path):
         try:
             os.remove(zip_path)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error removing zip file: {e}")
 
+    # Delete the specific output folder for current session
+    output_path = session.get('output_path')
+    if output_path and os.path.exists(output_path):
+        try:
+            shutil.rmtree(output_path)
+        except Exception as e:
+            print(f"Error removing output folder: {e}")
+
+    # Clear session data
     session.clear()
     return redirect(url_for('index'))
 
 # --- Main Program ---
 if __name__ == "__main__":
-    app.run(debug=False, host='127.0.0.1', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=5000)

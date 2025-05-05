@@ -1,4 +1,3 @@
-# Script untuk navigasi dan manajemen database face embeddings
 import os
 import sys
 import subprocess
@@ -14,6 +13,9 @@ UTILS_FOLDER = os.path.join(SCRIPT_DIR, "embedding_manager_utils")
 
 # Path ke aplikasi Flask yang akan direstart
 FLASK_APP_PATH = os.path.join(SCRIPT_DIR, "app.py")  # Sesuaikan dengan nama file aplikasi Flask Anda
+
+# Port yang digunakan aplikasi Flask
+FLASK_PORT = 5000
 
 # Nilai default untuk confidence threshold
 DEFAULT_CONFIDENCE = 0.6
@@ -252,13 +254,100 @@ def run_rebuild_database():
     
     input("\nTekan Enter untuk kembali ke menu utama...")
 
+def find_flask_processes():
+    """
+    Fungsi untuk menemukan proses Flask yang berjalan di port tertentu
+    Mendukung deteksi di semua antarmuka jaringan (0.0.0.0)
+    """
+    flask_processes = []
+    
+    try:
+        # Gunakan psutil untuk menemukan semua proses dengan koneksi jaringan
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'connections']):
+            try:
+                # Periksa apakah proses memiliki koneksi pada port yang kita cari
+                for conn in proc.connections():
+                    # Periksa jika ada koneksi dengan port yang sama, baik di localhost maupun 0.0.0.0
+                    if conn.status == 'LISTEN' and conn.laddr.port == FLASK_PORT:
+                        # Periksa apakah ini proses Python dan kemungkinan aplikasi Flask
+                        if proc.name().lower() in ['python', 'python.exe', 'python3', 'python3.exe']:
+                            cmdline = proc.cmdline()
+                            # Verifikasi lebih lanjut ini adalah aplikasi Flask kita
+                            if len(cmdline) > 1 and any('app.py' in arg for arg in cmdline):
+                                flask_processes.append(proc)
+                                break
+            except (psutil.AccessDenied, psutil.NoSuchProcess, AttributeError):
+                continue
+    
+    except Exception as e:
+        print(f"Error saat mencari proses Flask: {e}")
+    
+    return flask_processes
+
+def kill_flask_processes():
+    """Menghentikan semua proses Flask yang ditemukan"""
+    flask_processes = find_flask_processes()
+    killed = False
+    
+    for proc in flask_processes:
+        try:
+            proc.terminate()
+            print(f"Proses Flask dengan PID {proc.pid} berhasil dimatikan.")
+            killed = True
+        except Exception as e:
+            print(f"Gagal mematikan proses dengan PID {proc.pid}: {e}")
+    
+    # Jika terminasi dengan graceful tidak berfungsi, coba paksa kill
+    if not killed:
+        try:
+            # Metode alternatif untuk Windows
+            if os.name == 'nt':
+                # Gunakan netstat untuk cari proses di port yang ditentukan
+                command = f'netstat -ano | findstr :{FLASK_PORT}'
+                result = subprocess.check_output(command, shell=True).decode()
+                if result:
+                    lines = result.strip().split('\n')
+                    for line in lines:
+                        if 'LISTENING' in line:
+                            pid = line.strip().split()[-1]
+                            try:
+                                # Matikan proses dengan PID yang ditemukan
+                                subprocess.call(['taskkill', '/F', '/PID', pid])
+                                print(f"Proses dengan PID {pid} berhasil dimatikan (metode alternatif).")
+                                killed = True
+                            except Exception as e:
+                                print(f"Gagal mematikan proses (metode alternatif): {e}")
+            
+            # Metode alternatif untuk Linux/macOS
+            else:
+                try:
+                    # Gunakan lsof untuk cari proses di port yang ditentukan
+                    command = f"lsof -i :{FLASK_PORT} -t"
+                    result = subprocess.check_output(command, shell=True).decode()
+                    if result:
+                        pids = result.strip().split('\n')
+                        for pid in pids:
+                            try:
+                                # Kill -9 untuk paksa mematikan
+                                os.kill(int(pid), signal.SIGKILL)
+                                print(f"Proses dengan PID {pid} berhasil dimatikan paksa (metode alternatif).")
+                                killed = True
+                            except Exception as e:
+                                print(f"Gagal mematikan proses (metode alternatif): {e}")
+                except subprocess.CalledProcessError:
+                    pass  # Tidak ada proses yang ditemukan
+        except Exception as e:
+            print(f"Error pada metode alternatif: {e}")
+    
+    return killed
+
 def restart_flask_app():
     """Fungsi untuk merestart aplikasi Flask klasifikasi wajah"""
     print_header()
     print("RESTART APLIKASI KLASIFIKASI WAJAH")
     print("=" * 60)
     print("Proses ini akan mematikan aplikasi yang sedang berjalan dan menjalankannya kembali.")
-    print("Aplikasi berjalan di port 5000 (http://localhost:5000)\n")
+    print(f"Aplikasi berjalan di port {FLASK_PORT} (http://0.0.0.0:{FLASK_PORT})\n")
     
     # Konfirmasi restart
     confirm = input("Apakah Anda yakin ingin merestart aplikasi? (y/n): ").lower()
@@ -274,65 +363,13 @@ def restart_flask_app():
         input("\nTekan Enter untuk kembali ke menu utama...")
         return
     
-    print("\nMematikan proses Flask yang sedang berjalan di port 5000...")
+    print(f"\nMematikan proses Flask yang sedang berjalan di port {FLASK_PORT}...")
     
-    # Cari dan matikan proses yang menggunakan port 5000
-    killed = False
-    
-    try:
-        # Untuk OS Windows
-        if os.name == 'nt':
-            # Gunakan netstat untuk cari proses di port 5000
-            result = subprocess.check_output('netstat -ano | findstr :5000', shell=True).decode()
-            if result:
-                lines = result.strip().split('\n')
-                for line in lines:
-                    if 'LISTENING' in line:
-                        pid = line.strip().split()[-1]
-                        try:
-                            # Matikan proses dengan PID yang ditemukan
-                            subprocess.call(['taskkill', '/F', '/PID', pid])
-                            killed = True
-                            print(f"Proses dengan PID {pid} berhasil dimatikan.")
-                        except Exception as e:
-                            print(f"Gagal mematikan proses: {e}")
-        
-        # Untuk Linux/macOS
-        else:
-            # Gunakan lsof untuk cari proses di port 5000
-            try:
-                result = subprocess.check_output(['lsof', '-i', ':5000', '-t']).decode()
-                if result:
-                    pids = result.strip().split('\n')
-                    for pid in pids:
-                        try:
-                            # Matikan proses dengan PID yang ditemukan
-                            os.kill(int(pid), signal.SIGTERM)
-                            killed = True
-                            print(f"Proses dengan PID {pid} berhasil dimatikan.")
-                        except Exception as e:
-                            print(f"Gagal mematikan proses: {e}")
-            except subprocess.CalledProcessError:
-                pass  # Tidak ada proses yang ditemukan
-        
-        # Coba metode kedua menggunakan psutil untuk platform apapun
-        if not killed:
-            for proc in psutil.process_iter(['pid', 'name', 'connections']):
-                try:
-                    for conn in proc.connections():
-                        if conn.laddr.port == 5000:
-                            proc.terminate()
-                            print(f"Proses {proc.name()} dengan PID {proc.pid} berhasil dimatikan.")
-                            killed = True
-                            break
-                except (psutil.AccessDenied, psutil.NoSuchProcess):
-                    continue
-    
-    except Exception as e:
-        print(f"Error saat mencoba mematikan proses: {e}")
+    # Cari dan matikan proses Flask
+    killed = kill_flask_processes()
     
     if not killed:
-        print("Tidak ditemukan proses Flask aktif di port 5000.")
+        print(f"Tidak ditemukan proses Flask aktif di port {FLASK_PORT}.")
     
     print("\nMenjalankan aplikasi Flask...")
     
@@ -343,7 +380,7 @@ def restart_flask_app():
             cwd=os.path.dirname(FLASK_APP_PATH)
         )
         print(f"Aplikasi Flask berhasil dijalankan dengan PID {flask_app_process.pid}")
-        print("Server berjalan di http://localhost:5000")
+        print(f"Server berjalan di http://0.0.0.0:{FLASK_PORT}")
     except Exception as e:
         print(f"Error saat menjalankan aplikasi Flask: {e}")
     
@@ -354,7 +391,7 @@ def stop_flask_app():
     print_header()
     print("HENTIKAN APLIKASI KLASIFIKASI WAJAH")
     print("=" * 60)
-    print("Proses ini akan mematikan aplikasi Flask yang sedang berjalan di port 5000.")
+    print(f"Proses ini akan mematikan aplikasi Flask yang sedang berjalan di port {FLASK_PORT}.")
     print("Aplikasi tidak akan dimulai ulang sampai Anda memilih opsi restart.\n")
     
     # Konfirmasi untuk menghentikan aplikasi
@@ -364,65 +401,13 @@ def stop_flask_app():
         input("\nTekan Enter untuk kembali ke menu utama...")
         return
     
-    print("\nMematikan proses Flask yang sedang berjalan di port 5000...")
+    print(f"\nMematikan proses Flask yang sedang berjalan di port {FLASK_PORT}...")
     
-    # Cari dan matikan proses yang menggunakan port 5000
-    killed = False
-    
-    try:
-        # Untuk OS Windows
-        if os.name == 'nt':
-            # Gunakan netstat untuk cari proses di port 5000
-            result = subprocess.check_output('netstat -ano | findstr :5000', shell=True).decode()
-            if result:
-                lines = result.strip().split('\n')
-                for line in lines:
-                    if 'LISTENING' in line:
-                        pid = line.strip().split()[-1]
-                        try:
-                            # Matikan proses dengan PID yang ditemukan
-                            subprocess.call(['taskkill', '/F', '/PID', pid])
-                            killed = True
-                            print(f"Proses dengan PID {pid} berhasil dimatikan.")
-                        except Exception as e:
-                            print(f"Gagal mematikan proses: {e}")
-        
-        # Untuk Linux/macOS
-        else:
-            # Gunakan lsof untuk cari proses di port 5000
-            try:
-                result = subprocess.check_output(['lsof', '-i', ':5000', '-t']).decode()
-                if result:
-                    pids = result.strip().split('\n')
-                    for pid in pids:
-                        try:
-                            # Matikan proses dengan PID yang ditemukan
-                            os.kill(int(pid), signal.SIGTERM)
-                            killed = True
-                            print(f"Proses dengan PID {pid} berhasil dimatikan.")
-                        except Exception as e:
-                            print(f"Gagal mematikan proses: {e}")
-            except subprocess.CalledProcessError:
-                pass  # Tidak ada proses yang ditemukan
-        
-        # Coba metode kedua menggunakan psutil untuk platform apapun
-        if not killed:
-            for proc in psutil.process_iter(['pid', 'name', 'connections']):
-                try:
-                    for conn in proc.connections():
-                        if conn.laddr.port == 5000:
-                            proc.terminate()
-                            print(f"Proses {proc.name()} dengan PID {proc.pid} berhasil dimatikan.")
-                            killed = True
-                            break
-                except (psutil.AccessDenied, psutil.NoSuchProcess):
-                    continue
-    
-    except Exception as e:
-        print(f"Error saat mencoba mematikan proses: {e}")
+    # Cari dan matikan proses Flask
+    killed = kill_flask_processes()
     
     if not killed:
-        print("Tidak ditemukan proses Flask aktif di port 5000.")
+        print(f"Tidak ditemukan proses Flask aktif di port {FLASK_PORT}.")
     else:
         print("\nAplikasi Flask berhasil dihentikan.")
     
