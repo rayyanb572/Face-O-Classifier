@@ -36,6 +36,8 @@
                 <p id="progressDetails" style="font-size: 0.85em; margin-top: 5px;">Size: 
                     <span id="uploadedSize">0 KB</span> / <span id="totalSize">0 KB</span>
                 </p>
+                <!-- Tombol cancel upload -->
+                <button type="button" id="cancelUploadButton" class="btn-danger" onclick="cancelUpload()">Cancel</button>
             </div>
         </form>
         
@@ -79,6 +81,7 @@
     <script>
         let isProcessingStarted = false;
         let processingCheckInterval = null;
+        let xhr = null; // Variable untuk menyimpan objek XMLHttpRequest untuk upload
 
         // Format ukuran file ke B/KB/MB
         function formatSize(bytes) {
@@ -95,6 +98,28 @@
                 document.getElementById('loadingSpinner').style.display = 'block';
                 startProcessingCheck(folderName);
             }
+        }
+
+        // Fungsi untuk membatalkan proses upload
+        function cancelUpload() {
+            if (confirm("Apakah Anda yakin ingin membatalkan proses upload?")) {
+                if (xhr && xhr.readyState !== 4) {
+                    xhr.abort();
+                    resetUploadForm();
+                }
+            }
+        }
+
+        // Reset form upload ke keadaan awal
+        function resetUploadForm() {
+            document.getElementById('uploadButton').style.display = 'inline-block';
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('percentageText').textContent = '0%';
+            document.getElementById('statusText').textContent = 'Preparing upload...';
+            document.getElementById('uploadedSize').textContent = '0 KB';
+            document.getElementById('totalSize').textContent = '0 KB';
+            document.getElementById('zipfile').value = ''; // Reset file input
         }
 
         // Fungsi utama untuk upload file ZIP dan mulai proses
@@ -127,12 +152,7 @@
             const formData = new FormData();
             formData.append('zipfile', file);
 
-            const xhr = new XMLHttpRequest();
-
-            // Jika upload lambat, tampilkan spinner sebagai fallback
-            const spinnerTimeout = setTimeout(() => {
-                showSpinner(folderName);
-            }, 1000);
+            xhr = new XMLHttpRequest();
 
             // Progress bar saat upload berjalan
             xhr.upload.addEventListener('progress', function(e) {
@@ -147,26 +167,29 @@
 
             // Upload selesai, lanjut ke proses
             xhr.upload.addEventListener('load', function() {
-                clearTimeout(spinnerTimeout);
                 document.getElementById('statusText').textContent = 'Upload complete. Processing...';
                 document.getElementById('progressBar').style.width = '100%';
                 document.getElementById('percentageText').textContent = '100%';
-                showSpinner(folderName);
+                // Tampilkan spinner setelah upload selesai dan sebelum respons server
+                setTimeout(function() {
+                    showSpinner(folderName);
+                }, 500); // beri sedikit jeda untuk UI
             });
 
             // Jika upload gagal
             xhr.upload.addEventListener('error', function() {
-                clearTimeout(spinnerTimeout);
                 document.getElementById('statusText').textContent = 'Upload failed';
                 alert('Upload failed. Please try again.');
+                resetUploadForm();
+            });
+
+            // Jika upload dibatalkan
+            xhr.upload.addEventListener('abort', function() {
+                resetUploadForm();
             });
 
             // Tangani status respons setelah upload
             xhr.onreadystatechange = function() {
-                if (xhr.readyState === 2) {
-                    showSpinner(folderName);
-                }
-
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
                         if (xhr.responseText.includes('Processing Complete.')) {
@@ -176,10 +199,9 @@
                         }
                     } else if (xhr.status === 302) {
                         window.location.href = window.location.href;
-                    } else {
+                    } else if (xhr.status !== 0) { // Status 0 biasanya terjadi saat abort/cancel
                         alert('Error: ' + xhr.statusText);
-                        document.getElementById('uploadButton').style.display = 'block';
-                        document.getElementById('progressContainer').style.display = 'none';
+                        resetUploadForm();
                         document.getElementById('loadingSpinner').style.display = 'none';
                     }
                 }
