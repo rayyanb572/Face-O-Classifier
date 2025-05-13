@@ -1,83 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <!-- Metadata dasar dan pemanggilan stylesheet -->
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom Metadata -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face'O'Classifier</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
+<body class="centered-content">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white text-center py-3">
+                        <h1 class="h3 mb-0">Face'O'Classifier</h1>
+                    </div>
+                    <div class="card-body">
+                        <!-- Show upload form only if no results are available -->
+                        {% if not output_path %}
+                        <!-- Upload Form -->
+                        <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="zipfile" class="form-label">Upload ZIP File:</label>
+                                <div class="input-group">
+                                    <input type="file" class="form-control" id="zipfile" name="zipfile" accept=".zip" required>
+                                    <button class="btn btn-primary" type="button" id="uploadButton" onclick="startUpload()">
+                                        <i class="bi bi-upload me-2"></i>Upload
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Progress Container -->
+                            <div id="progressContainer" class="d-none mt-3">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span id="statusText" class="text-muted">Preparing upload...</span>
+                                    <span id="percentageText">0%</span>
+                                </div>
+                                <div class="progress">
+                                    <div 
+                                        id="progressBar" 
+                                        class="progress-bar" 
+                                        role="progressbar" 
+                                        style="width: 0%" 
+                                        aria-valuenow="0" 
+                                        aria-valuemin="0" 
+                                        aria-valuemax="100"
+                                    ></div>
+                                </div>
+                                <div class="d-flex justify-content-between small text-muted mt-2">
+                                    <span>Size: <span id="uploadedSize">0 KB</span> / <span id="totalSize">0 KB</span></span>
+                                    <button type="button" id="cancelUploadButton" class="btn btn-sm btn-danger" onclick="cancelUpload()">
+                                        <i class="bi bi-x-circle me-1"></i>Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Loading Spinner -->
+                        <div id="loadingSpinner" class="text-center d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Processing...</span>
+                            </div>
+                            <p class="mt-3">
+                                Folder: <strong id="processingFolder"></strong>
+                            </p>
+                            <p id="processingStep" class="text-muted"></p>
+                            <button type="button" id="cancelButton" class="btn btn-danger mt-3" onclick="cancelProcessing()">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </button>
+                        </div>
 
-<body class="index-page">
-    <div class="index-container">
-        <h1>Face'O'Classifier</h1>
-
-        <!-- Form Upload -->
-        <form id="uploadForm" class="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
-            <div class="upload-container">
-                <label for="zipfile">Upload ZIP File:</label>
-                <input type="file" name="zipfile" id="zipfile" accept=".zip" required>
-                <!-- Tombol upload -->
-                {% if not output_path %}
-                <button type="button" id="uploadButton" onclick="startUpload()">Upload</button>
-                {% endif %}
-            </div>
-            
-            <!-- Progress bar upload -->
-            <div id="progressContainer" style="display: none; margin-top: 15px; width: 100%;">
-                <div class="progress-labels">
-                    <span id="statusText">Preparing upload...</span>
-                    <span id="percentageText">0%</span>
+                        <!-- Results Section -->
+                        {% if output_path %}
+                        <div id="results" class="text-center">
+                            {% if original_folder_name %}
+                            <div class="alert alert-light">
+                                <p class="mb-0">Folder: <strong class="text-primary">{{ original_folder_name }}</strong></p>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle-fill me-2"></i>Processing Complete.
+                            </div>
+                            
+                            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                                <a href="{{ url_for('preview_folders') }}" class="btn btn-primary">
+                                    <i class="bi bi-eye me-2"></i>Preview
+                                </a>
+                                
+                                {% if zip_available %}
+                                <a href="{{ url_for('download_zip') }}" class="btn btn-success">
+                                    <i class="bi bi-download me-2"></i>Download (ZIP)
+                                </a>
+                                {% endif %}
+                                
+                                <!-- This is a separate form for reset functionality -->
+                                <form id="resetForm" action="{{ url_for('reset') }}" method="POST" onsubmit="return confirmReset()">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="bi bi-arrow-clockwise me-2"></i>Reset
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="progress-bar-container">
-                    <div id="progressBar" class="progress-bar"></div>
-                </div>
-                <p id="progressDetails" style="font-size: 0.85em; margin-top: 5px;">Size: 
-                    <span id="uploadedSize">0 KB</span> / <span id="totalSize">0 KB</span>
-                </p>
-                <!-- Tombol cancel upload -->
-                <button type="button" id="cancelUploadButton" class="btn-danger" onclick="cancelUpload()">Cancel</button>
-            </div>
-        </form>
-        
-        <!-- Spinner animasi saat proses klasifikasi berjalan -->
-        <div id="loadingSpinner" class="spinner-container" style="display: none;">
-            <div class="spinner"></div>
-            <p>Folder : <strong id="processingFolder"></strong></p>
-            <p id="processingStep"></p>
-            <!-- Tombol untuk membatalkan proses -->
-            <button type="button" id="cancelButton" class="btn-danger" onclick="cancelProcessing()">Cancel</button>
-        </div>
-
-        <!-- Bagian hasil setelah proses selesai -->
-        {% if output_path %}
-        <div id="results">
-            {% if original_folder_name %}
-            <p>Folder : <strong class="folder-name-display">{{ original_folder_name }}</strong></p>
-            {% endif %}
-            <p>Processing Complete.</p>
-            <div class="button-group">
-                <!-- Tombol untuk melihat hasil klasifikasi -->
-                <a href="{{ url_for('preview_folders') }}">
-                    <button class="btn-small">Preview</button>
-                </a>
-                <!-- Tombol untuk download ZIP jika tersedia -->
-                {% if zip_available %}
-                <a href="{{ url_for('download_zip') }}">
-                    <button type="button" class="btn-small">Download (ZIP)</button>
-                </a>
-                {% endif %}
-                <!-- Tombol reset aplikasi -->
-                <form id="resetForm" class="reset-form" action="{{ url_for('reset') }}" method="POST"
-                    onsubmit="return confirmReset()">
-                    <button type="submit" class="btn-danger">Reset</button>
-                </form>
             </div>
         </div>
-        {% endif %}
     </div>
 
+    <!-- Bootstrap JS and Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
         let isProcessingStarted = false;
         let processingCheckInterval = null;
@@ -90,31 +132,17 @@
             else return (bytes / 1048576).toFixed(1) + " MB";
         }
 
-        // Tampilkan spinner saat proses dimulai
-        function showSpinner(folderName) {
-            if (!isProcessingStarted) {
-                isProcessingStarted = true;
-                document.getElementById('progressContainer').style.display = 'none';
-                document.getElementById('loadingSpinner').style.display = 'block';
-                startProcessingCheck(folderName);
-            }
-        }
-
-        // Fungsi untuk membatalkan proses upload
-        function cancelUpload() {
-            if (confirm("Apakah Anda yakin ingin membatalkan proses upload?")) {
-                if (xhr && xhr.readyState !== 4) {
-                    xhr.abort();
-                    resetUploadForm();
-                }
-            }
-        }
-
-        // Reset form upload ke keadaan awal
         function resetUploadForm() {
-            document.getElementById('uploadButton').style.display = 'inline-block';
-            document.getElementById('progressContainer').style.display = 'none';
-            document.getElementById('progressBar').style.width = '0%';
+            // Use Bootstrap class manipulation
+            document.getElementById('uploadButton').classList.remove('d-none');
+            const progressContainer = document.getElementById('progressContainer');
+            progressContainer.classList.add('d-none');
+            
+            // Reset progress bar and texts
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = '0%';
+            progressBar.setAttribute('aria-valuenow', '0');
+            
             document.getElementById('percentageText').textContent = '0%';
             document.getElementById('statusText').textContent = 'Preparing upload...';
             document.getElementById('uploadedSize').textContent = '0 KB';
@@ -122,7 +150,6 @@
             document.getElementById('zipfile').value = ''; // Reset file input
         }
 
-        // Fungsi utama untuk upload file ZIP dan mulai proses
         function startUpload() {
             const fileInput = document.getElementById('zipfile');
             if (!fileInput.files.length) {
@@ -138,8 +165,12 @@
 
             isProcessingStarted = false;
 
-            document.getElementById('uploadButton').style.display = 'none';
-            document.getElementById('progressContainer').style.display = 'block';
+            // Hide upload button
+            document.getElementById('uploadButton').classList.add('d-none');
+            
+            // Show progress container using Bootstrap class
+            const progressContainer = document.getElementById('progressContainer');
+            progressContainer.classList.remove('d-none');
 
             document.getElementById('totalSize').textContent = formatSize(file.size);
 
@@ -158,7 +189,12 @@
             xhr.upload.addEventListener('progress', function(e) {
                 if (e.lengthComputable) {
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    document.getElementById('progressBar').style.width = percentComplete + '%';
+                    const progressBar = document.getElementById('progressBar');
+                    
+                    // Update progress bar width and aria attributes
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.setAttribute('aria-valuenow', percentComplete);
+                    
                     document.getElementById('percentageText').textContent = percentComplete + '%';
                     document.getElementById('statusText').textContent = 'Uploading...';
                     document.getElementById('uploadedSize').textContent = formatSize(e.loaded);
@@ -168,8 +204,11 @@
             // Upload selesai, lanjut ke proses
             xhr.upload.addEventListener('load', function() {
                 document.getElementById('statusText').textContent = 'Upload complete. Processing...';
-                document.getElementById('progressBar').style.width = '100%';
+                const progressBar = document.getElementById('progressBar');
+                progressBar.style.width = '100%';
+                progressBar.setAttribute('aria-valuenow', '100');
                 document.getElementById('percentageText').textContent = '100%';
+                
                 // Tampilkan spinner setelah upload selesai dan sebelum respons server
                 setTimeout(function() {
                     showSpinner(folderName);
@@ -202,13 +241,31 @@
                     } else if (xhr.status !== 0) { // Status 0 biasanya terjadi saat abort/cancel
                         alert('Error: ' + xhr.statusText);
                         resetUploadForm();
-                        document.getElementById('loadingSpinner').style.display = 'none';
+                        document.getElementById('loadingSpinner').classList.add('d-none');
                     }
                 }
             };
 
             xhr.open('POST', '/upload', true);
             xhr.send(formData);
+        }
+
+        function showSpinner(folderName) {
+            if (!isProcessingStarted) {
+                isProcessingStarted = true;
+                document.getElementById('progressContainer').classList.add('d-none');
+                document.getElementById('loadingSpinner').classList.remove('d-none');
+                startProcessingCheck(folderName);
+            }
+        }
+
+        function cancelUpload() {
+            if (confirm("Apakah Anda yakin ingin membatalkan proses upload?")) {
+                if (xhr && xhr.readyState !== 4) {
+                    xhr.abort();
+                    resetUploadForm();
+                }
+            }
         }
 
         // Cek status pemrosesan secara periodik
