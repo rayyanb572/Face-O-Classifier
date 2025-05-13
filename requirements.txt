@@ -1,7 +1,14 @@
 flask
+flask-session
+Werkzeug
+opencv-python-headless
 ultralytics
 keras-facenet
-opencv-python-headless
-tqdm
+tensorflow
+scikit-learn
 numpy
-Pillow
+tqdm
+pillow
+matplotlib
+scipy
+h5py
