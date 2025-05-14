@@ -5,10 +5,8 @@ opencv-python-headless
 ultralytics
 keras-facenet
 tensorflow
-scikit-learn
 numpy
 tqdm
 pillow
-matplotlib
 scipy
 h5py
