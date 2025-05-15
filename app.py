@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 import random
 import shutil
@@ -39,6 +40,7 @@ app.secret_key = "your_secret_key"
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_DIR'] = 'flask_session'
 app.config['SESSION_PERMANENT'] = False
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=5)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ZIP_FOLDER'] = 'zip'
 Session(app)
@@ -280,9 +282,14 @@ def open_output():
     output_path = session.get('output_path')
     if output_path and os.path.exists(output_path):
         try:
-            os.startfile(output_path)  # Untuk Windows
-        except Exception:
-            os.system(f'xdg-open "{output_path}"')  # Untuk Linux/macOS
+            # Cek OS
+            if os.name == 'nt':  # Windows
+                os.startfile(output_path)
+            else:  # Linux/macOS
+                import subprocess
+                subprocess.Popen(['xdg-open', output_path])
+        except Exception as e:
+            print(f"Error opening output folder: {e}")
     return '', 204
 
 @app.route('/reset', methods=['POST'])

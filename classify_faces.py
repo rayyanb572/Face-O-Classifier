@@ -39,8 +39,8 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
         if output_folder is None:
             output_folder = "(Classified) " + os.path.basename(input_folder)
         
-        unknown_folder = os.path.join(output_folder, "unknown")
-        visualized_folder = os.path.join(output_folder, "visualized")
+        unknown_folder = os.path.join(output_folder, "UNKNOWN")
+        visualized_folder = os.path.join(output_folder, "VISUALIZED")
         labels_folder = os.path.join(output_folder, "labels")
         low_conf_folder = os.path.join(output_folder, "low_confidence")
 
