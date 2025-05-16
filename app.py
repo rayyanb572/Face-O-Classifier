@@ -40,7 +40,6 @@ app.secret_key = "your_secret_key"
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_DIR'] = 'flask_session'
 app.config['SESSION_PERMANENT'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=5)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ZIP_FOLDER'] = 'zip'
 Session(app)
