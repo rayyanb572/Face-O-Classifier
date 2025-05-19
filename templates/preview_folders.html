@@ -1,18 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <!-- CSS & Assets -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
-
     <!-- Meta -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview Folder</title>
 </head>
-
 <body>
     <!-- Header Navigation -->
     <nav class="navbar navbar-dark bg-primary fixed-top">
@@ -23,15 +20,14 @@
             <span class="navbar-brand mb-0 w-100 text-center">Folder Output List</span>
         </div>
     </nav>
-
     <!-- Konten Utama -->
     <div class="container mt-5 pt-4">
-        <div class="row g-4">
+        <div class="row g-4" id="folderContainer">
             <!-- Tampilan Folder -->
             {% if folders %}
             {% for folder in folders %}
-            <div class="col-6 col-md-4 col-lg-3">
-                <a href="{{ url_for('preview_images', folder_name=folder) }}" class="text-decoration-none">
+            <div class="col-6 col-md-4 col-lg-3" data-folder-name="{{ folder }}">
+                <a href="{{ url_for('preview_images', folder_name=folder) }}" class="text-decoration-none folder-link">
                     <div class="card folder-card text-center shadow-sm">
                         <div class="card-body">
                             <div class="folder-icon mb-3">
@@ -43,7 +39,6 @@
                 </a>
             </div>
             {% endfor %}
-
             <!-- Pesan Jika Tidak Ada Folder -->
             {% else %}
             <div class="col-12">
@@ -55,15 +50,71 @@
             {% endif %}
         </div>
     </div>
-
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dapatkan data folder yang ada saat ini
+            const currentFolders = Array.from(document.querySelectorAll('[data-folder-name]'))
+                .map(el => el.getAttribute('data-folder-name'));
+            
+            // Dapatkan data folder yang sebelumnya tersimpan
+            const savedFolders = sessionStorage.getItem('savedFoldersList');
+            
+            // Reset scroll position jika daftar folder telah berubah (input file baru)
+            if (savedFolders && JSON.stringify(currentFolders) !== savedFolders) {
+                console.log('Folder list changed, resetting scroll position');
+                sessionStorage.removeItem('foldersScrollPosition');
+                sessionStorage.removeItem('lastViewedFolder');
+                window.scrollTo(0, 0);
+            } else {
+                // Restore posisi scroll jika folder masih sama
+                const savedScrollPosition = sessionStorage.getItem('foldersScrollPosition');
+                if (savedScrollPosition) {
+                    window.scrollTo(0, parseInt(savedScrollPosition));
+                }
+                
+                // Scroll ke posisi folder terakhir jika ada
+                const lastViewedFolder = sessionStorage.getItem('lastViewedFolder');
+                if (lastViewedFolder && !savedScrollPosition) {
+                    const folderElements = document.querySelectorAll('[data-folder-name]');
+                    folderElements.forEach(function(element) {
+                        if (element.getAttribute('data-folder-name') === lastViewedFolder) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
+                }
+            }
+            
+            // Simpan daftar folder saat ini untuk perbandingan di masa mendatang
+            sessionStorage.setItem('savedFoldersList', JSON.stringify(currentFolders));
+        });
+
         // Fungsi kembali ke halaman utama
         function goBack() {
+            // Simpan posisi scroll untuk kembali ke posisi yang sama
+            sessionStorage.setItem('indexScrollPosition', window.pageYOffset.toString());
             window.location.href = "{{ url_for('index') }}";
         }
+        
+        // Simpan posisi scroll saat pengguna scroll
+        window.addEventListener('scroll', function() {
+            sessionStorage.setItem('foldersScrollPosition', window.pageYOffset.toString());
+        }, { passive: true });
+        
+        // Tambahkan event listener untuk setiap link folder
+        document.querySelectorAll('.folder-link').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                // Simpan posisi scroll saat ini
+                sessionStorage.setItem('foldersScrollPosition', window.pageYOffset.toString());
+                
+                // Simpan nama folder yang diklik
+                const folderName = this.closest('[data-folder-name]').getAttribute('data-folder-name');
+                sessionStorage.setItem('lastClickedFolder', folderName);
+            });
+        });
     </script>
-</body>
 
+</body>
 </html>
