@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- CSS Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Meta tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face'O'Classifier - Database Manager</title>
+
+    <!-- Icon Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- CSS Custom -->
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center py-3">
+                        <h1 class="h3 mb-0">Manage Database</h1>
+                        <a href="{{ url_for('index') }}" class="btn btn-sm btn-light">
+                            <i class="bi bi-house-fill me-2"></i>Home
+                        </a>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            Pengelola database wajah & embedding.
+                        </div>
+
+                        <!-- Status Messages -->
+                        {% if message %}
+                        <div class="alert alert-{{ message_type }}">
+                            {{ message }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Database Statistics -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Statistik Database</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-3 text-center">
+                                            <h2 class="text-primary">{{ db_stats.total_people|default('0') }}</h2>
+                                            <p class="text-muted mb-0">Total Orang</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-3 text-center">
+                                            <h2 class="text-success">{{ db_stats.total_images|default('0') }}</h2>
+                                            <p class="text-muted mb-0">Total Foto</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-3 text-center">
+                                            <h2 class="text-info">{{ db_stats.last_updated|default('Never') }}</h2>
+                                            <p class="text-muted mb-0">Last Updated</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Database Actions -->
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Update Embeddings</h5>
+                                        <p class="card-text">Lakukan update setiap melakukan edit isi dari database.</p>
+                                        <form action="{{ url_for('admin_update_embeddings') }}" method="POST">
+                                            <button type="submit" class="btn btn-primary" id="update-embeddings-btn"
+                                                onclick="return confirm('Are you sure you want to rebuild embeddings? This process may take some time.');">
+                                                <i class="bi bi-arrow-clockwise me-2"></i>Update Embeddings (SAVE)
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Tambah Orang Baru</h5>
+                                        <p class="card-text">Upload ZIP berisi foto yang sudah di proses (crop).
+                                        </p>
+                                        <form action="{{ url_for('admin_add_person') }}" method="POST"
+                                            enctype="multipart/form-data">
+                                            <div class="mb-3">
+                                                <label for="person_name" class="form-label">Nama:</label>
+                                                <input type="text" class="form-control" id="person_name"
+                                                    name="person_name" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="person_images" class="form-label">Upload File
+                                                    (ZIP):</label>
+                                                <input type="file" class="form-control" id="person_images"
+                                                    name="person_images" accept=".zip" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="bi bi-person-plus-fill me-2"></i>Tambah
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Audit Database</h5>
+                                        <p class="card-text">Melakukan cek pada database untuk mencari inkonsistensi antara jumlah
+                                            foto dan embedding.</p>
+                                        <a href="{{ url_for('admin_audit') }}" class="btn btn-info">
+                                            <i class="bi bi-search me-2"></i>Audit Database
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Database Contents -->
+                        <div class="card mt-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Isi Database</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if people_list %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Nama</th>
+                                                <th>Foto</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for person in people_list %}
+                                            <tr>
+                                                <td>{{ person.name }}</td>
+                                                <td>{{ person.image_count }}</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{{ url_for('admin_view_person', person_id=person.id) }}"
+                                                            class="btn btn-info">
+                                                            <i class="bi bi-eye-fill"></i>
+                                                        </a>
+                                                        <!-- Add Photo Button -->
+                                                        <button type="button" class="btn btn-success" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#addPhotoModal" 
+                                                            data-person-id="{{ person.id }}" 
+                                                            data-person-name="{{ person.name }}">
+                                                            <i class="bi bi-plus-circle-fill"></i>
+                                                        </button>
+                                                        <!-- Edit Name Button -->
+                                                        <button type="button" class="btn btn-warning" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#editNameModal" 
+                                                            data-person-id="{{ person.id }}" 
+                                                            data-person-name="{{ person.name }}">
+                                                            <i class="bi bi-pencil-fill"></i>
+                                                        </button>
+                                                        <!-- Delete Button -->
+                                                        <button type="button" class="btn btn-danger" 
+                                                            onclick="if(confirm('Apakah kamu yakin ingin menghapus data acuan orang ini?')) {
+                                                                document.getElementById('delete-form-{{ person.id }}').submit();
+                                                            }">
+                                                            <i class="bi bi-trash-fill"></i>
+                                                        </button>
+                                                    </div>
+                                                    <form id="delete-form-{{ person.id }}" 
+                                                        action="{{ url_for('admin_delete_person') }}"
+                                                        method="POST" style="display: none;">
+                                                        <input type="hidden" name="person_id" value="{{ person.id }}">
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Tidak Terdapat Orang Di
+                                    Database.
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Photo Modal -->
+    <div class="modal fade" id="addPhotoModal" tabindex="-1" aria-labelledby="addPhotoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="addPhotoModalLabel">Tambah Foto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addPhotoForm" action="{{ url_for('admin_add_photos') }}" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="person_id" id="add_person_id">
+                        <p>Tambah foto untuk: <strong id="add_person_name"></strong></p>
+                        
+                        <div class="mb-3">
+                            <label for="new_photos" class="form-label">Pilih Foto (JPG, JPEG, PNG):</label>
+                            <input type="file" class="form-control" id="new_photos" name="new_photos" 
+                                accept=".jpg,.jpeg,.png" multiple required>
+                            <div class="form-text">Dapat memilih beberapa foto sekaligus.</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-success" onclick="document.getElementById('addPhotoForm').submit();">
+                        <i class="bi bi-plus-circle me-2"></i>Tambah Foto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Name Modal -->
+    <div class="modal fade" id="editNameModal" tabindex="-1" aria-labelledby="editNameModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="editNameModalLabel">Edit Nama</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editNameForm" action="{{ url_for('admin_edit_person_name') }}" method="POST">
+                        <input type="hidden" name="person_id" id="edit_person_id">
+                        <div class="mb-3">
+                            <label for="current_name" class="form-label">Nama Sekarang:</label>
+                            <input type="text" class="form-control" id="current_name" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_name" class="form-label">Nama Baru:</label>
+                            <input type="text" class="form-control" id="new_name" name="new_name" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-warning" onclick="document.getElementById('editNameForm').submit();">
+                        <i class="bi bi-save me-2"></i>Simpan Perubahan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Modal -->
+    <div class="modal fade" id="processingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="processingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="processingModalLabel">Processing</h5>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <p id="processingMessage">Processing . Harap Tunggu...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS & Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Confidence threshold value display (if exists)
+            const confidenceSlider = document.getElementById('confidence_threshold');
+            const thresholdValue = document.getElementById('threshold_value');
+
+            if (confidenceSlider && thresholdValue) {
+                // Update on page load
+                thresholdValue.textContent = confidenceSlider.value;
+
+                // Update when slider value changes
+                confidenceSlider.addEventListener('input', function () {
+                    thresholdValue.textContent = this.value;
+                });
+            }
+
+            // Add Photo Modal
+            const addPhotoModal = document.getElementById('addPhotoModal');
+            if (addPhotoModal) {
+                addPhotoModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const personId = button.getAttribute('data-person-id');
+                    const personName = button.getAttribute('data-person-name');
+                    
+                    document.getElementById('add_person_id').value = personId;
+                    document.getElementById('add_person_name').textContent = personName;
+                });
+            }
+            
+            // Edit Name Modal
+            const editNameModal = document.getElementById('editNameModal');
+            if (editNameModal) {
+                editNameModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const personId = button.getAttribute('data-person-id');
+                    const personName = button.getAttribute('data-person-name');
+                    
+                    document.getElementById('edit_person_id').value = personId;
+                    document.getElementById('current_name').value = personName;
+                    document.getElementById('new_name').value = personName;
+                });
+            }
+
+            // Show processing modal for actions that might take time
+            const formsWithProcessing = document.querySelectorAll(
+                'form[action="{{ url_for("admin_update_embeddings") }}"], ' + 
+                'form[action="{{ url_for("admin_add_person") }}"], ' +
+                'form[action="{{ url_for("admin_add_photos") }}"], ' +
+                'form[action="{{ url_for("admin_edit_person_name") }}"]'
+            );
+
+            formsWithProcessing.forEach(form => {
+                form.addEventListener('submit', function (event) {
+                    // Check if form is valid before showing processing modal
+                    if (form.checkValidity()) {
+                        const processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
+                        processingModal.show();
+
+                        // Custom message for different actions
+                        if (form.action.includes('update_embeddings')) {
+                            document.getElementById('processingMessage').textContent = 'Updating embedding wajah. Mohon tunggu beberapa saat...';
+                        } else if (form.action.includes('add_person')) {
+                            document.getElementById('processingMessage').textContent = 'Menambahkan orang baru ke database...';
+                        } else if (form.action.includes('add_photos')) {
+                            document.getElementById('processingMessage').textContent = 'Menambahkan foto baru...';
+                        } else if (form.action.includes('edit_person_name')) {
+                            document.getElementById('processingMessage').textContent = 'Mengubah nama folder...';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -12,13 +12,40 @@ import time
 # Global flag untuk mengontrol proses
 processing_cancelled = threading.Event()
 
-# Load model YOLO untuk deteksi wajah dan FaceNet untuk embedding wajah
+# Inisialisasi model (hanya sekali)
 yolo_model = YOLO("yolov8m-face.pt")
 embedder = FaceNet()
 
-# Load database embedding wajah yang sudah dikenal
-with open("face_embeddings.pkl", "rb") as f:
-    known_embeddings = pickle.load(f)
+# Variabel untuk menyimpan waktu terakhir kali embedding dimuat
+last_embedding_load_time = 0
+
+# Fungsi untuk memuat embedding dengan cek waktu modifikasi file
+def load_embeddings():
+    global last_embedding_load_time
+    
+    embedding_file = "face_embeddings.pkl"
+    
+    if os.path.exists(embedding_file):
+        # Periksa kapan terakhir kali file dimodifikasi
+        current_mod_time = os.path.getmtime(embedding_file)
+        
+        # Jika file telah diubah sejak terakhir kali dimuat atau belum pernah dimuat
+        if current_mod_time > last_embedding_load_time:
+            print(f"Loading updated embeddings from {embedding_file}")
+            with open(embedding_file, "rb") as f:
+                known_embeddings = pickle.load(f)
+            
+            # Perbarui waktu muat terakhir
+            last_embedding_load_time = current_mod_time
+            return known_embeddings
+        else:
+            # File tidak berubah, coba muat dari cache
+            with open(embedding_file, "rb") as f:
+                return pickle.load(f)
+    else:
+        # File tidak ada, kembalikan dictionary kosong
+        print(f"Warning: Embedding file {embedding_file} tidak ditemukan!")
+        return {}
 
 def cancel_processing():
     """Fungsi untuk membatalkan proses klasifikasi"""
@@ -35,6 +62,9 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
     reset_cancel_flag()
     
     try:
+        # Muat embedding paling baru (dengan deteksi perubahan file otomatis)
+        known_embeddings = load_embeddings()
+        
         # Gunakan nama folder input sebagai default output folder jika tidak diberikan
         if output_folder is None:
             output_folder = "(Classified) " + os.path.basename(input_folder)

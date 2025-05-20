@@ -249,8 +249,7 @@ def update_face_embeddings(database_dir="database", output_path="face_embeddings
         "total_persons": len(updated_embeddings),
         "new_embeddings": new_images_processed,
         "retained_embeddings": retained_embeddings,
-        "removed_embeddings": deleted_embeddings,
-        "processing_time": processing_time
+        "removed_embeddings": deleted_embeddings
     }
 
 if __name__ == "__main__":

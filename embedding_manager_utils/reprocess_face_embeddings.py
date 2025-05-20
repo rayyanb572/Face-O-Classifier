@@ -24,6 +24,9 @@ def reprocess_problem_faces(database_dir="database",
         embeddings_path: Path ke file pickle embeddings wajah
         metadata_path: Path ke file pickle metadata wajah
         confidence_threshold: Batas kepercayaan untuk deteksi wajah YOLO (0.3-0.7)
+        
+    Returns:
+        dict: Statistik pemrosesan (total gambar bermasalah, sukses, error, dll.)
     """
     print("\n" + "=" * 60)
     print(f"MEMPROSES ULANG WAJAH BERMASALAH (Batas Kepercayaan: {confidence_threshold})")
@@ -34,25 +37,29 @@ def reprocess_problem_faces(database_dir="database",
     # Validasi batas kepercayaan
     if not 0.3 <= confidence_threshold <= 0.7:
         print(f"Peringatan: Batas kepercayaan {confidence_threshold} di luar rentang yang direkomendasikan (0.3-0.7).")
-        choice = input("Lanjutkan? (y/n): ")
-        if choice.lower() != 'y':
-            print("Operasi dibatalkan.")
-            return
-    
-    # Kode selebihnya tetap sama...
+        # Lanjutkan tanpa konfirmasi karena ini web app
     
     # Periksa apakah file yang diperlukan ada
     if not os.path.exists(embeddings_path):
         print(f"Error: File embeddings {embeddings_path} tidak ditemukan.")
-        return
+        return {
+            "status": "error",
+            "message": f"File embeddings {embeddings_path} tidak ditemukan."
+        }
         
     if not os.path.exists(metadata_path):
         print(f"Error: File metadata {metadata_path} tidak ditemukan.")
-        return
+        return {
+            "status": "error",
+            "message": f"File metadata {metadata_path} tidak ditemukan."
+        }
         
     if not os.path.exists(database_dir):
         print(f"Error: Direktori database {database_dir} tidak ditemukan.")
-        return
+        return {
+            "status": "error",
+            "message": f"Direktori database {database_dir} tidak ditemukan."
+        }
     
     # Muat data yang ada
     print("Memuat embeddings dan metadata yang ada...")
@@ -64,7 +71,10 @@ def reprocess_problem_faces(database_dir="database",
             metadata = pickle.load(f)
     except Exception as e:
         print(f"Error saat memuat data: {e}")
-        return
+        return {
+            "status": "error",
+            "message": f"Error saat memuat data: {e}"
+        }
     
     # Inisialisasi model (hanya ketika kita yakin membutuhkannya)
     print("Menginisialisasi model deteksi wajah dan embedding...")
@@ -188,20 +198,20 @@ def reprocess_problem_faces(database_dir="database",
     
     if not problem_images:
         print("Tidak ada gambar bermasalah ditemukan. Database tampaknya dalam kondisi baik.")
-        return
-        
-    # Minta konfirmasi
-    choice = input(f"Lanjutkan dengan memproses ulang {len(problem_images)} gambar? (y/n): ")
-    if choice.lower() != 'y':
-        print("Operasi dibatalkan.")
-        return
+        return {
+            "status": "success",
+            "message": "Tidak ada gambar bermasalah ditemukan. Database dalam kondisi baik.",
+            "total_problematic_files": 0,
+            "success_count": 0,
+            "error_count": 0
+        }
     
     # Penghitung statistik
     reprocessed_count = 0
     success_count = 0
     error_count = 0
     
-    # Proses ulang gambar bermasalah
+    # Proses ulang gambar bermasalah - Tidak ada konfirmasi untuk web app
     print("\nMemproses ulang gambar bermasalah...")
     for idx, (person_name, filename, image_path, issue) in enumerate(problem_images):
         print(f"\n[{idx+1}/{len(problem_images)}] Memproses: {person_name}/{filename}")
@@ -340,8 +350,14 @@ def reprocess_problem_faces(database_dir="database",
     print(f"  {metadata_path}")
     print("=" * 60)
     
-    print("\nRekomendasi: Jalankan fungsi lihat detail untuk memverifikasi bahwa masalah telah teratasi.")
+    # Kembalikan statistik
+    return {
+        "status": "success",
+        "message": "Pemrosesan ulang selesai",
+        "total_problematic_files": len(problem_images)
+    }
 
+# Jika dijalankan sebagai skrip, gunakan argumen baris perintah
 if __name__ == "__main__":
     # Siapkan penguraian argumen baris perintah
     parser = argparse.ArgumentParser(description="Memproses ulang gambar wajah bermasalah dalam database")
@@ -364,9 +380,12 @@ if __name__ == "__main__":
         print("dan nilai lebih tinggi (0.5-0.7) akan mendeteksi wajah dengan kualitas lebih tinggi tetapi mungkin melewatkan beberapa")
     
     # Jalankan pemrosesan ulang
-    reprocess_problem_faces(
+    result = reprocess_problem_faces(
         database_dir=args.database,
         embeddings_path=args.embeddings,
         metadata_path=args.metadata,
         confidence_threshold=args.confidence
     )
+    
+    print(f"Status: {result['status']}")
+    print(f"Pesan: {result['message']}")

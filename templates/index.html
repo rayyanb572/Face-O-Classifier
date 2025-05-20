@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <!-- CSS Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <!-- Meta tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face'O'Classifier</title>
-    
+
     <!-- Icon Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    
+
     <!-- CSS Custom -->
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
+
 <body class="centered-content">
     <div class="container py-5">
         <div class="row justify-content-center">
@@ -31,13 +33,15 @@
                             <div class="mb-3">
                                 <label for="zipfile" class="form-label">Upload ZIP File:</label>
                                 <div class="input-group">
-                                    <input type="file" class="form-control" id="zipfile" name="zipfile" accept=".zip" required>
-                                    <button class="btn btn-primary" type="button" id="uploadButton" onclick="startUpload()">
+                                    <input type="file" class="form-control" id="zipfile" name="zipfile" accept=".zip"
+                                        required>
+                                    <button class="btn btn-primary" type="button" id="uploadButton"
+                                        onclick="startUpload()">
                                         <i class="bi bi-upload me-2"></i>Upload
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <!-- Progress Container -->
                             <div id="progressContainer" class="d-none mt-3">
                                 <div class="d-flex justify-content-between mb-2">
@@ -45,26 +49,21 @@
                                     <span id="percentageText">0%</span>
                                 </div>
                                 <div class="progress">
-                                    <div 
-                                        id="progressBar" 
-                                        class="progress-bar" 
-                                        role="progressbar" 
-                                        style="width: 0%" 
-                                        aria-valuenow="0" 
-                                        aria-valuemin="0" 
-                                        aria-valuemax="100"
-                                    ></div>
+                                    <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"
+                                        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                                 <div class="d-flex justify-content-between small text-muted mt-2">
-                                    <span>Size: <span id="uploadedSize">0 KB</span> / <span id="totalSize">0 KB</span></span>
-                                    <button type="button" id="cancelUploadButton" class="btn btn-sm btn-danger" onclick="cancelUpload()">
+                                    <span>Size: <span id="uploadedSize">0 KB</span> / <span id="totalSize">0
+                                            KB</span></span>
+                                    <button type="button" id="cancelUploadButton" class="btn btn-sm btn-danger"
+                                        onclick="cancelUpload()">
                                         <i class="bi bi-x-circle me-1"></i>Cancel
                                     </button>
                                 </div>
                             </div>
                         </form>
                         {% endif %}
-                        
+
                         <!-- Loading Spinner -->
                         <div id="loadingSpinner" class="text-center d-none">
                             <div class="spinner-border text-primary" role="status">
@@ -74,7 +73,8 @@
                                 Folder: <strong id="processingFolder"></strong>
                             </p>
                             <p id="processingStep" class="text-muted"></p>
-                            <button type="button" id="cancelButton" class="btn btn-danger mt-3" onclick="cancelProcessing()">
+                            <button type="button" id="cancelButton" class="btn btn-danger mt-3"
+                                onclick="cancelProcessing()">
                                 <i class="bi bi-x-circle me-2"></i>Cancel
                             </button>
                         </div>
@@ -84,27 +84,29 @@
                         <div id="results" class="text-center">
                             {% if original_folder_name %}
                             <div class="alert alert-light">
-                                <p class="mb-0">Folder: <strong class="text-primary">{{ original_folder_name }}</strong></p>
+                                <p class="mb-0">Folder: <strong class="text-primary">{{ original_folder_name }}</strong>
+                                </p>
                             </div>
                             {% endif %}
-                            
+
                             <div class="alert alert-success">
                                 <i class="bi bi-check-circle-fill me-2"></i>Processing Complete.
                             </div>
-                            
+
                             <div class="d-flex justify-content-center gap-3 flex-wrap">
                                 <a href="{{ url_for('preview_folders') }}" class="btn btn-primary">
                                     <i class="bi bi-eye me-2"></i>Preview
                                 </a>
-                                
+
                                 {% if zip_available %}
                                 <a href="{{ url_for('download_zip') }}" class="btn btn-success">
                                     <i class="bi bi-download me-2"></i>Download (ZIP)
                                 </a>
                                 {% endif %}
-                                
+
                                 <!-- This is a separate form for reset functionality -->
-                                <form id="resetForm" action="{{ url_for('reset') }}" method="POST" onsubmit="return confirmReset()">
+                                <form id="resetForm" action="{{ url_for('reset') }}" method="POST"
+                                    onsubmit="return confirmReset()">
                                     <button type="submit" class="btn btn-danger">
                                         <i class="bi bi-arrow-clockwise me-2"></i>Reset
                                     </button>
@@ -118,9 +120,64 @@
         </div>
     </div>
 
+    <!-- Admin Button (Bottom Left) -->
+    <div class="position-fixed bottom-0 start-0 m-3">
+        <button id="adminButton" class="btn btn-secondary btn-sm" onclick="showAdminLogin()">
+            <i class="bi bi-gear-fill"></i>
+        </button>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div class="modal fade" id="adminLoginModal" tabindex="-1" aria-labelledby="adminLoginModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title" id="adminLoginModalLabel">Admin Login</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Add an alert container for login errors -->
+                    <div id="loginAlert" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="loginErrorMessage">Invalid username or password</span>
+                    </div>
+
+                    <!-- Display Flask flash messages if any -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form id="adminLoginForm" action="/admin/login" method="POST">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS & Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
         let isProcessingStarted = false;
         let processingCheckInterval = null;
@@ -138,12 +195,12 @@
             document.getElementById('uploadButton').classList.remove('d-none');
             const progressContainer = document.getElementById('progressContainer');
             progressContainer.classList.add('d-none');
-            
+
             // Reset progress bar and texts
             const progressBar = document.getElementById('progressBar');
             progressBar.style.width = '0%';
             progressBar.setAttribute('aria-valuenow', '0');
-            
+
             document.getElementById('percentageText').textContent = '0%';
             document.getElementById('statusText').textContent = 'Preparing upload...';
             document.getElementById('uploadedSize').textContent = '0 KB';
@@ -168,7 +225,7 @@
 
             // Hide upload button
             document.getElementById('uploadButton').classList.add('d-none');
-            
+
             // Show progress container using Bootstrap class
             const progressContainer = document.getElementById('progressContainer');
             progressContainer.classList.remove('d-none');
@@ -176,9 +233,9 @@
             document.getElementById('totalSize').textContent = formatSize(file.size);
 
             // Ambil nama folder dari nama file
-            const folderName = file.name.toLowerCase().endsWith('.zip') 
-                                ? file.name.substring(0, file.name.length - 4) 
-                                : file.name;
+            const folderName = file.name.toLowerCase().endsWith('.zip')
+                ? file.name.substring(0, file.name.length - 4)
+                : file.name;
             document.getElementById('processingFolder').textContent = folderName;
 
             const formData = new FormData();
@@ -187,15 +244,15 @@
             xhr = new XMLHttpRequest();
 
             // Progress bar saat upload berjalan
-            xhr.upload.addEventListener('progress', function(e) {
+            xhr.upload.addEventListener('progress', function (e) {
                 if (e.lengthComputable) {
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
                     const progressBar = document.getElementById('progressBar');
-                    
+
                     // Update progress bar width and aria attributes
                     progressBar.style.width = percentComplete + '%';
                     progressBar.setAttribute('aria-valuenow', percentComplete);
-                    
+
                     document.getElementById('percentageText').textContent = percentComplete + '%';
                     document.getElementById('statusText').textContent = 'Uploading...';
                     document.getElementById('uploadedSize').textContent = formatSize(e.loaded);
@@ -203,33 +260,33 @@
             });
 
             // Upload selesai, lanjut ke proses
-            xhr.upload.addEventListener('load', function() {
+            xhr.upload.addEventListener('load', function () {
                 document.getElementById('statusText').textContent = 'Upload complete. Processing...';
                 const progressBar = document.getElementById('progressBar');
                 progressBar.style.width = '100%';
                 progressBar.setAttribute('aria-valuenow', '100');
                 document.getElementById('percentageText').textContent = '100%';
-                
+
                 // Tampilkan spinner setelah upload selesai dan sebelum respons server
-                setTimeout(function() {
+                setTimeout(function () {
                     showSpinner(folderName);
                 }, 500); // beri sedikit jeda untuk UI
             });
 
             // Jika upload gagal
-            xhr.upload.addEventListener('error', function() {
+            xhr.upload.addEventListener('error', function () {
                 document.getElementById('statusText').textContent = 'Upload failed';
                 alert('Upload failed. Please try again.');
                 resetUploadForm();
             });
 
             // Jika upload dibatalkan
-            xhr.upload.addEventListener('abort', function() {
+            xhr.upload.addEventListener('abort', function () {
                 resetUploadForm();
             });
 
             // Tangani status respons setelah upload
-            xhr.onreadystatechange = function() {
+            xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
                         if (xhr.responseText.includes('Processing Complete.')) {
@@ -279,7 +336,7 @@
             }
 
             // Animasi teks proses
-            processingCheckInterval = setInterval(function() {
+            processingCheckInterval = setInterval(function () {
                 document.getElementById('processingStep').textContent = steps[currentStep];
                 currentStep = (currentStep + 1) % steps.length;
             }, 2000);
@@ -314,24 +371,24 @@
                         'Content-Type': 'application/json',
                     }
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        if (processingCheckInterval) {
-                            clearInterval(processingCheckInterval);
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            if (processingCheckInterval) {
+                                clearInterval(processingCheckInterval);
+                            }
+                            document.getElementById('processingStep').textContent = "Cancelling process...";
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 1500);
+                        } else {
+                            alert('Failed to cancel: ' + data.message);
                         }
-                        document.getElementById('processingStep').textContent = "Cancelling process...";
-                        setTimeout(() => {
-                            window.location.href = '/';
-                        }, 1500);
-                    } else {
-                        alert('Failed to cancel: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error cancelling process');
-                });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error cancelling process');
+                    });
             }
         }
 
@@ -340,13 +397,34 @@
             return confirm("Apakah Anda yakin ingin mereset aplikasi?");
         }
 
+        // Show admin login modal
+        function showAdminLogin() {
+            const adminLoginModal = new bootstrap.Modal(document.getElementById('adminLoginModal'));
+            adminLoginModal.show();
+        }
+
+        // Handle login error display
+        document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+            // Reset any existing error message
+            const loginAlert = document.getElementById('loginAlert');
+            loginAlert.classList.add('d-none');
+        });
+
         // Jika spinner aktif saat halaman dimuat ulang, lanjutkan pengecekan status
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             if (document.getElementById('loadingSpinner').style.display === 'block') {
                 const folderName = document.getElementById('processingFolder').textContent;
                 startProcessingCheck(folderName);
             }
+            
+            // Check if there's a URL parameter indicating login failure
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('login_error') === 'true') {
+                showAdminLogin();
+                document.getElementById('loginAlert').classList.remove('d-none');
+            }
         });
     </script>
 </body>
+
 </html>
