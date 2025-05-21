@@ -1,12 +1,10 @@
-flask
-flask-session
-Werkzeug
+numpy
+Pillow
 opencv-python-headless
 ultralytics
 keras-facenet
 tensorflow
-numpy
+flask
+flask-session
 tqdm
-pillow
-scipy
-h5py
+werkzeug
