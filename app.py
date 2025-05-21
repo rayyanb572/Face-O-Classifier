@@ -690,7 +690,7 @@ def admin_add_person():
         # Clean up temp folder
         shutil.rmtree(temp_folder)
         
-        session['admin_message'] = f'Successfully added {person_name} with {len(image_files)} images'
+        session['admin_message'] = f'Berhasil menambahkan {person_name} dengan {len(image_files)} foto'
         session['admin_message_type'] = 'success'
     except Exception as e:
         session['admin_message'] = f'Error adding person: {str(e)}'
@@ -764,7 +764,7 @@ def admin_delete_image():
         # Delete the image file
         os.remove(image_path)
         
-        session['admin_message'] = f'Successfully deleted image: {filename}'
+        session['admin_message'] = f'Berhasil menghapus gambar: {filename}'
         session['admin_message_type'] = 'success'
         
         # Check if this was the last image, if so, maybe prompt to delete the person
@@ -804,7 +804,7 @@ def admin_delete_person():
         # Delete person folder
         shutil.rmtree(person_folder)
         
-        session['admin_message'] = f'Successfully deleted {person_id}'
+        session['admin_message'] = f'Berhasil menghapus data {person_id}'
         session['admin_message_type'] = 'success'
     except Exception as e:
         session['admin_message'] = f'Error deleting person: {str(e)}'
@@ -875,7 +875,7 @@ def admin_add_photos():
                 print(f"Error saving file {file.filename}: {e}")
     
     if files_saved > 0:
-        session['admin_message'] = f'Successfully added {files_saved} new photos for {person_id}'
+        session['admin_message'] = f'Berhasil menambahkan {files_saved} foto baru untuk {person_id}'
         session['admin_message_type'] = 'success'
     else:
         session['admin_message'] = 'No files were saved due to errors'
@@ -922,7 +922,7 @@ def admin_edit_person_name():
             # Rename folder
             os.rename(old_folder_path, new_folder_path)
             
-            session['admin_message'] = f'Successfully renamed {person_id} to {new_name}'
+            session['admin_message'] = f'Berhasil rename {person_id} ke {new_name}'
             session['admin_message_type'] = 'success'
         else:
             session['admin_message'] = 'No changes made to name'
