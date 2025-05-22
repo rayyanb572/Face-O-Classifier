@@ -240,14 +240,27 @@ def preview_folders():
     output_path = session.get('output_path')
     if not output_path or not os.path.exists(output_path):
         return redirect(url_for('index'))
-
+    
     folders = [
         name for name in os.listdir(output_path)
         if os.path.isdir(os.path.join(output_path, name))
         and name != 'labels'
         and len(os.listdir(os.path.join(output_path, name))) > 0
     ]
-
+    
+    # Custom sorting: VISUALIZED pertama, UNKNOWN kedua, sisanya alfabetis
+    def custom_sort_key(folder_name):
+        folder_upper = folder_name.upper()
+        if folder_upper == 'VISUALIZED':
+            return (1, folder_name.lower())  # Pertama
+        elif folder_upper == 'UNKNOWN':
+            return (2, folder_name.lower())  # Kedua
+        else:
+            return (3, folder_name.lower())  # Folder lainnya setelahnya
+    
+    # Urutkan folder dengan custom key
+    folders.sort(key=custom_sort_key)
+    
     return render_template('preview_folders.html', folders=folders)
 
 @app.route('/preview/<folder_name>')
@@ -265,6 +278,9 @@ def preview_images(folder_name):
         f for f in os.listdir(folder_path)
         if f.lower().endswith(('jpg', 'jpeg', 'png'))
     ]
+
+    # Urutkan nama file secara alfanumerik
+    image_filenames.sort()
 
     images = [
         url_for('serve_output', filename=os.path.join(folder_name, filename))
@@ -824,7 +840,7 @@ def admin_add_photos():
         return redirect(url_for('admin_panel'))
     
     if 'new_photos' not in request.files:
-        session['admin_message'] = 'No files uploaded'
+        session['admin_message'] = 'Tidak ada file yang diupload'
         session['admin_message_type'] = 'danger'
         return redirect(url_for('admin_view_person', person_id=person_id))
     
@@ -832,7 +848,7 @@ def admin_add_photos():
     files = request.files.getlist('new_photos')
     
     if not files or files[0].filename == '':
-        session['admin_message'] = 'No files selected'
+        session['admin_message'] = 'Tidak ada file yang dipilih'
         session['admin_message_type'] = 'danger'
         return redirect(url_for('admin_view_person', person_id=person_id))
     
@@ -925,7 +941,7 @@ def admin_edit_person_name():
             session['admin_message'] = f'Berhasil rename {person_id} ke {new_name}'
             session['admin_message_type'] = 'success'
         else:
-            session['admin_message'] = 'No changes made to name'
+            session['admin_message'] = 'Tidak ada perubahan yang dilakukan pada nama'
             session['admin_message_type'] = 'info'
     except Exception as e:
         session['admin_message'] = f'Error renaming person: {str(e)}'

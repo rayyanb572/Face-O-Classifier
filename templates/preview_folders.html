@@ -9,6 +9,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview Folder</title>
+
 </head>
 <body>
     <!-- Header Navigation -->
@@ -30,8 +31,17 @@
                 <a href="{{ url_for('preview_images', folder_name=folder) }}" class="text-decoration-none folder-link">
                     <div class="card folder-card text-center shadow-sm">
                         <div class="card-body">
-                            <div class="folder-icon mb-3">
-                                <i class="bi bi-folder"></i>
+                            <div class="folder-icon mb-3 
+                                {% if folder.upper() == 'VISUALIZED' %}visualized
+                                {% elif folder.upper() == 'UNKNOWN' %}unknown
+                                {% else %}default{% endif %}">
+                                {% if folder.upper() == 'VISUALIZED' %}
+                                    <i class="bi bi-person-bounding-box"></i>
+                                {% elif folder.upper() == 'UNKNOWN' %}
+                                    <i class="bi bi-person-x-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-folder"></i>
+                                {% endif %}
                             </div>
                             <h5 class="card-title text-truncate">{{ folder }}</h5>
                         </div>

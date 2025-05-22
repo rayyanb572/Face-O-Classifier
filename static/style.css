@@ -24,8 +24,11 @@ body.centered-content {
     border-color: var(--custom-blue) !important;
 }
 
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-    background-color: #0069b3 !important; /* Slightly darker for hover */
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: #0069b3 !important;
+    /* Slightly darker for hover */
     border-color: #0069b3 !important;
 }
 
@@ -41,7 +44,7 @@ body.centered-content {
     background-color: var(--custom-blue) !important;
 }
 
-.custom-file-input:focus ~ .custom-file-label {
+.custom-file-input:focus~.custom-file-label {
     border-color: var(--custom-blue);
     box-shadow: 0 0 0 0.2rem rgba(0, 122, 204, 0.25);
 }
@@ -84,7 +87,7 @@ body.centered-content {
 }
 
 .modal-backdrop {
-    background-color: rgba(0,0,0,0.7);
+    background-color: rgba(0, 0, 0, 0.7);
 }
 
 /* Modal Back Button Styles */
@@ -109,4 +112,114 @@ body.centered-content {
 .modal-back-btn:hover {
     background-color: var(--custom-blue);
     transform: scale(1.1);
+}
+
+/* Modal Navigation Button Styles */
+.modal-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(51, 51, 51, 0.5);
+    color: white;
+    border: 2px solid white;
+    border-radius: 20%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1060;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.modal-prev-btn {
+    left: 20px;
+}
+
+.modal-next-btn {
+    right: 20px;
+}
+
+.modal-nav-btn:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.modal-nav-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Modal Counter Styles */
+.modal-counter {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1060;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .modal-nav-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+
+    .modal-prev-btn {
+        left: 10px;
+    }
+
+    .modal-next-btn {
+        right: 10px;
+    }
+
+    .modal-back-btn {
+        top: 15px;
+        left: 15px;
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+    }
+
+    .modal-counter {
+        bottom: 15px;
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+}
+
+/* Hide navigation buttons when only one image */
+.modal-nav-btn[style*="display: none"] {
+    display: none !important;
+}
+
+/* Custom styles for special folder icons */
+.folder-icon.visualized {
+    color: #28a745;
+    /* Green color for VISUALIZED */
+}
+
+.folder-icon.unknown {
+    color: #ffc107;
+    /* Amber color for UNKNOWN */
+}
+
+.folder-icon.default {
+    color: #007bff;
+    /* Blue color for regular folders */
+}
+
+.folder-icon i {
+    font-size: 3rem;
 }

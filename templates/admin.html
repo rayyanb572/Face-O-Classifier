@@ -22,7 +22,8 @@
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center py-3">
+                    <div
+                        class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
                         <h1 class="h3 mb-0">Manage Database</h1>
                         <a href="{{ url_for('index') }}" class="btn btn-sm btn-light">
                             <i class="bi bi-house-fill me-2"></i>Home
@@ -80,7 +81,7 @@
                                         <p class="card-text">Lakukan update setiap melakukan edit isi dari database.</p>
                                         <form action="{{ url_for('admin_update_embeddings') }}" method="POST">
                                             <button type="submit" class="btn btn-primary" id="update-embeddings-btn"
-                                                onclick="return confirm('Are you sure you want to rebuild embeddings? This process may take some time.');">
+                                                onclick="return confirm('Apakah kamu ingin melakukan update pada embedding? Proses ini akan memakan sedikit waktu.');">
                                                 <i class="bi bi-arrow-clockwise me-2"></i>Update Embeddings (SAVE)
                                             </button>
                                         </form>
@@ -117,7 +118,8 @@
                                 <div class="card h-100">
                                     <div class="card-body">
                                         <h5 class="card-title">Audit Database</h5>
-                                        <p class="card-text">Melakukan cek pada database untuk mencari inkonsistensi antara jumlah
+                                        <p class="card-text">Melakukan cek pada database untuk mencari inkonsistensi
+                                            antara jumlah
                                             foto dan embedding.</p>
                                         <a href="{{ url_for('admin_audit') }}" class="btn btn-info">
                                             <i class="bi bi-search me-2"></i>Audit Database
@@ -138,9 +140,9 @@
                                     <table class="table table-striped table-hover">
                                         <thead>
                                             <tr>
-                                                <th>Nama</th>
-                                                <th>Foto</th>
-                                                <th>Actions</th>
+                                                <th style="width: 40%">Nama</th>
+                                                <th style="width: 30%">Foto</th>
+                                                <th style="width: 30%" class="text-start">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -154,33 +156,27 @@
                                                             class="btn btn-info">
                                                             <i class="bi bi-eye-fill"></i>
                                                         </a>
-                                                        <!-- Add Photo Button -->
-                                                        <button type="button" class="btn btn-success" 
-                                                            data-bs-toggle="modal" 
-                                                            data-bs-target="#addPhotoModal" 
-                                                            data-person-id="{{ person.id }}" 
+                                                        <button type="button" class="btn btn-success"
+                                                            data-bs-toggle="modal" data-bs-target="#addPhotoModal"
+                                                            data-person-id="{{ person.id }}"
                                                             data-person-name="{{ person.name }}">
                                                             <i class="bi bi-plus-circle-fill"></i>
                                                         </button>
-                                                        <!-- Edit Name Button -->
-                                                        <button type="button" class="btn btn-warning" 
-                                                            data-bs-toggle="modal" 
-                                                            data-bs-target="#editNameModal" 
-                                                            data-person-id="{{ person.id }}" 
+                                                        <button type="button" class="btn btn-warning"
+                                                            data-bs-toggle="modal" data-bs-target="#editNameModal"
+                                                            data-person-id="{{ person.id }}"
                                                             data-person-name="{{ person.name }}">
                                                             <i class="bi bi-pencil-fill"></i>
                                                         </button>
-                                                        <!-- Delete Button -->
-                                                        <button type="button" class="btn btn-danger" 
-                                                            onclick="if(confirm('Apakah kamu yakin ingin menghapus data acuan orang ini?')) {
-                                                                document.getElementById('delete-form-{{ person.id }}').submit();
-                                                            }">
+                                                        <button type="button" class="btn btn-danger" onclick="if(confirm('Apakah kamu yakin ingin menghapus data acuan orang ini?')) {
+                                        document.getElementById('delete-form-{{ person.id }}').submit();
+                                    }">
                                                             <i class="bi bi-trash-fill"></i>
                                                         </button>
                                                     </div>
-                                                    <form id="delete-form-{{ person.id }}" 
-                                                        action="{{ url_for('admin_delete_person') }}"
-                                                        method="POST" style="display: none;">
+                                                    <form id="delete-form-{{ person.id }}"
+                                                        action="{{ url_for('admin_delete_person') }}" method="POST"
+                                                        style="display: none;">
                                                         <input type="hidden" name="person_id" value="{{ person.id }}">
                                                     </form>
                                                 </td>
@@ -209,16 +205,17 @@
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title" id="addPhotoModalLabel">Tambah Foto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addPhotoForm" action="{{ url_for('admin_add_photos') }}" method="POST" enctype="multipart/form-data">
+                    <form id="addPhotoForm" action="{{ url_for('admin_add_photos') }}" method="POST"
+                        enctype="multipart/form-data">
                         <input type="hidden" name="person_id" id="add_person_id">
                         <p>Tambah foto untuk: <strong id="add_person_name"></strong></p>
-                        
+
                         <div class="mb-3">
                             <label for="new_photos" class="form-label">Pilih Foto (JPG, JPEG, PNG):</label>
-                            <input type="file" class="form-control" id="new_photos" name="new_photos" 
+                            <input type="file" class="form-control" id="new_photos" name="new_photos"
                                 accept=".jpg,.jpeg,.png" multiple required>
                             <div class="form-text">Dapat memilih beberapa foto sekaligus.</div>
                         </div>
@@ -226,7 +223,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-success" onclick="document.getElementById('addPhotoForm').submit();">
+                    <button type="button" class="btn btn-success"
+                        onclick="document.getElementById('addPhotoForm').submit();">
                         <i class="bi bi-plus-circle me-2"></i>Tambah Foto
                     </button>
                 </div>
@@ -257,7 +255,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-warning" onclick="document.getElementById('editNameForm').submit();">
+                    <button type="button" class="btn btn-warning"
+                        onclick="document.getElementById('editNameForm').submit();">
                         <i class="bi bi-save me-2"></i>Simpan Perubahan
                     </button>
                 </div>
@@ -309,12 +308,12 @@
                     const button = event.relatedTarget;
                     const personId = button.getAttribute('data-person-id');
                     const personName = button.getAttribute('data-person-name');
-                    
+
                     document.getElementById('add_person_id').value = personId;
                     document.getElementById('add_person_name').textContent = personName;
                 });
             }
-            
+
             // Edit Name Modal
             const editNameModal = document.getElementById('editNameModal');
             if (editNameModal) {
@@ -322,7 +321,7 @@
                     const button = event.relatedTarget;
                     const personId = button.getAttribute('data-person-id');
                     const personName = button.getAttribute('data-person-name');
-                    
+
                     document.getElementById('edit_person_id').value = personId;
                     document.getElementById('current_name').value = personName;
                     document.getElementById('new_name').value = personName;
@@ -331,7 +330,7 @@
 
             // Show processing modal for actions that might take time
             const formsWithProcessing = document.querySelectorAll(
-                'form[action="{{ url_for("admin_update_embeddings") }}"], ' + 
+                'form[action="{{ url_for("admin_update_embeddings") }}"], ' +
                 'form[action="{{ url_for("admin_add_person") }}"], ' +
                 'form[action="{{ url_for("admin_add_photos") }}"], ' +
                 'form[action="{{ url_for("admin_edit_person_name") }}"]'

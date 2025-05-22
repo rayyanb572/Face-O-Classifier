@@ -1,18 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <!-- CSS & Assets -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
-
     <!-- Meta -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview Gambar "{{ folder_name }}"</title>
 </head>
-
 <body>
     <!-- Header Navigation -->
     <nav class="navbar navbar-dark bg-primary fixed-top">
@@ -23,20 +20,18 @@
             <span class="navbar-brand mb-0 w-100 text-center">{{ folder_name }}</span>
         </div>
     </nav>
-
     <!-- Grid Gambar -->
     <div class="container mt-5 pt-4">
         <div class="row g-4">
             {% for image in images %}
             <div class="col-6 col-md-4 col-lg-3">
-                <div class="image-grid-item" onclick="showModal('{{ image }}')">
+                <div class="image-grid-item" data-index="{{ loop.index0 }}" onclick="showModal(this.dataset.index)">
                     <img src="{{ image }}" alt="Processed Image" class="img-fluid rounded shadow-sm">
                 </div>
             </div>
             {% endfor %}
         </div>
     </div>
-
     <!-- Modal Preview Gambar -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -45,45 +40,110 @@
                     <button type="button" class="modal-back-btn" onclick="closeModal()">
                         <i class="bi bi-arrow-left"></i>
                     </button>
+                    <button type="button" class="modal-nav-btn modal-prev-btn" onclick="prevImage()">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button type="button" class="modal-nav-btn modal-next-btn" onclick="nextImage()">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
                     <img id="modalImage" class="modal-image img-fluid" src="" alt="Full Image">
+                    <div class="modal-counter">
+                        <span id="imageCounter">1 / 1</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
+    <!-- Hidden data container -->
+    <div id="imageData" style="display: none;">
+        {% for image in images %}
+        <span class="image-url">{{ image }}</span>
+        {% endfor %}
+    </div>
+    
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Variabel modal
+        // Variabel modal dan navigasi
         let currentModal = null;
-
+        let currentImageIndex = 0;
+        let images = [];
+        
+        // Load images from hidden container
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageElements = document.querySelectorAll('#imageData .image-url');
+            images = Array.from(imageElements).map(el => el.textContent);
+        });
+        
         // Fungsi navigasi kembali
         function goBack() {
             window.location.href = "{{ url_for('preview_folders') }}";
         }
-
+        
         // Fungsi modal
-        function showModal(src) {
-            const modalImage = document.getElementById('modalImage');
-            modalImage.src = src;
+        function showModal(index) {
+            currentImageIndex = parseInt(index);
+            updateModalImage();
             const imageModalElement = document.getElementById('imageModal');
             currentModal = new bootstrap.Modal(imageModalElement);
             currentModal.show();
         }
-
+        
         function closeModal() {
             if (currentModal) {
                 currentModal.hide();
             }
         }
-
-        // Event listener untuk tombol Escape
+        
+        // Fungsi navigasi gambar
+        function nextImage() {
+            currentImageIndex = (currentImageIndex + 1) % images.length;
+            updateModalImage();
+        }
+        
+        function prevImage() {
+            currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+            updateModalImage();
+        }
+        
+        function updateModalImage() {
+            const modalImage = document.getElementById('modalImage');
+            const imageCounter = document.getElementById('imageCounter');
+            
+            modalImage.src = images[currentImageIndex];
+            imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
+            
+            // Update navigation button visibility
+            const prevBtn = document.querySelector('.modal-prev-btn');
+            const nextBtn = document.querySelector('.modal-next-btn');
+            
+            if (images.length <= 1) {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+            } else {
+                prevBtn.style.display = 'flex';
+                nextBtn.style.display = 'flex';
+            }
+        }
+        
+        // Event listener untuk keyboard navigation
         document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                closeModal();
+            if (currentModal && currentModal._isShown) {
+                switch(event.key) {
+                    case 'Escape':
+                        closeModal();
+                        break;
+                    case 'ArrowLeft':
+                        prevImage();
+                        break;
+                    case 'ArrowRight':
+                        nextImage();
+                        break;
+                }
             }
         });
+        
+
     </script>
 </body>
-
 </html>
