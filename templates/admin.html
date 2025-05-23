@@ -79,9 +79,9 @@
                                     <div class="card-body">
                                         <h5 class="card-title">Update Embeddings</h5>
                                         <p class="card-text">Lakukan update setiap melakukan edit isi dari database.</p>
-                                        <form action="{{ url_for('admin_update_embeddings') }}" method="POST">
+                                        <form action="{{ url_for('admin.admin_update_embeddings') }}" method="POST">
                                             <button type="submit" class="btn btn-primary" id="update-embeddings-btn"
-                                                onclick="return confirm('Apakah kamu ingin melakukan update pada embedding? Proses ini akan memakan sedikit waktu.');">
+                                                onclick="return confirm('Apakah kamu ingin melakukan update pada embedding? Proses ini mungkin akan memakan waktu.');">
                                                 <i class="bi bi-arrow-clockwise me-2"></i>Update Embeddings (SAVE)
                                             </button>
                                         </form>
@@ -94,7 +94,7 @@
                                         <h5 class="card-title">Tambah Orang Baru</h5>
                                         <p class="card-text">Upload ZIP berisi foto yang sudah di proses (crop).
                                         </p>
-                                        <form action="{{ url_for('admin_add_person') }}" method="POST"
+                                        <form action="{{ url_for('admin.admin_add_person') }}" method="POST"
                                             enctype="multipart/form-data">
                                             <div class="mb-3">
                                                 <label for="person_name" class="form-label">Nama:</label>
@@ -121,7 +121,7 @@
                                         <p class="card-text">Melakukan cek pada database untuk mencari inkonsistensi
                                             antara jumlah
                                             foto dan embedding.</p>
-                                        <a href="{{ url_for('admin_audit') }}" class="btn btn-info">
+                                        <a href="{{ url_for('admin.admin_audit') }}" class="btn btn-info">
                                             <i class="bi bi-search me-2"></i>Audit Database
                                         </a>
                                     </div>
@@ -152,7 +152,7 @@
                                                 <td>{{ person.image_count }}</td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <a href="{{ url_for('admin_view_person', person_id=person.id) }}"
+                                                        <a href="{{ url_for('admin.admin_view_person', person_id=person.id) }}"
                                                             class="btn btn-info">
                                                             <i class="bi bi-eye-fill"></i>
                                                         </a>
@@ -175,7 +175,7 @@
                                                         </button>
                                                     </div>
                                                     <form id="delete-form-{{ person.id }}"
-                                                        action="{{ url_for('admin_delete_person') }}" method="POST"
+                                                        action="{{ url_for('admin.admin_delete_person') }}" method="POST"
                                                         style="display: none;">
                                                         <input type="hidden" name="person_id" value="{{ person.id }}">
                                                     </form>
@@ -208,7 +208,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addPhotoForm" action="{{ url_for('admin_add_photos') }}" method="POST"
+                    <form id="addPhotoForm" action="{{ url_for('admin.admin_add_photos') }}" method="POST"
                         enctype="multipart/form-data">
                         <input type="hidden" name="person_id" id="add_person_id">
                         <p>Tambah foto untuk: <strong id="add_person_name"></strong></p>
@@ -241,7 +241,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="editNameForm" action="{{ url_for('admin_edit_person_name') }}" method="POST">
+                    <form id="editNameForm" action="{{ url_for('admin.admin_edit_person_name') }}" method="POST">
                         <input type="hidden" name="person_id" id="edit_person_id">
                         <div class="mb-3">
                             <label for="current_name" class="form-label">Nama Sekarang:</label>
@@ -330,10 +330,10 @@
 
             // Show processing modal for actions that might take time
             const formsWithProcessing = document.querySelectorAll(
-                'form[action="{{ url_for("admin_update_embeddings") }}"], ' +
-                'form[action="{{ url_for("admin_add_person") }}"], ' +
-                'form[action="{{ url_for("admin_add_photos") }}"], ' +
-                'form[action="{{ url_for("admin_edit_person_name") }}"]'
+                'form[action="{{ url_for("admin.admin_update_embeddings") }}"], ' +
+                'form[action="{{ url_for("admin.admin_add_person") }}"], ' +
+                'form[action="{{ url_for("admin.admin_add_photos") }}"], ' +
+                'form[action="{{ url_for("admin.admin_edit_person_name") }}"]'
             );
 
             formsWithProcessing.forEach(form => {
