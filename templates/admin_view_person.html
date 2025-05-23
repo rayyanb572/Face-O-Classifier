@@ -55,14 +55,10 @@
                                                 data-image-name="{{ image.filename }}">
                                                 <i class="bi bi-eye-fill"></i> View
                                             </button>
-                                            <form action="{{ url_for('admin.admin_delete_image') }}" method="POST"
-                                                onsubmit="return confirm('Apakah kamu yakin ingin menghapus gambar ini?');">
-                                                <input type="hidden" name="person_id" value="{{ person.id }}">
-                                                <input type="hidden" name="filename" value="{{ image.filename }}">
-                                                <button type="submit" class="btn btn-sm btn-danger">
-                                                    <i class="bi bi-trash-fill"></i> Delete
-                                                </button>
-                                            </form>
+                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                onclick="deleteImage('{{ image.filename }}', '{{ person.id }}')">
+                                                <i class="bi bi-trash-fill"></i> Delete
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -93,55 +89,91 @@
                     <p id="modalImageName" class="mt-2"></p>
                 </div>
                 <div class="modal-footer">
-                    <form id="deleteImageForm" action="{{ url_for('admin.admin_delete_image') }}" method="POST">
-                        <input type="hidden" name="person_id" value="{{ person.id }}">
-                        <input type="hidden" id="deleteFilename" name="filename" value="">
-                        <button type="submit" class="btn btn-danger" 
-                            onclick="return confirm('Apakah kamu yakin ingin menghapus gambar ini?');">
-                            <i class="bi bi-trash-fill me-2"></i>Delete Image
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-danger" onclick="deleteImageFromModal()">
+                        <i class="bi bi-trash-fill me-2"></i>Delete Image
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Custom CSS -->
-    <style>
-        .image-card {
-            transition: transform 0.3s;
-        }
-        .image-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-        .image-card img {
-            height: 180px;
-            object-fit: cover;
-        }
-    </style>
+    <!-- Processing Modal -->
+    <div class="modal fade" id="processingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="processingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="processingModalLabel">Processing</h5>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <p id="processingMessage">Processing. Harap Tunggu...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden delete form -->
+    <form id="deleteImageForm" action="{{ url_for('admin.admin_delete_image') }}" method="POST" style="display: none;">
+        <input type="hidden" name="person_id" value="{{ person.id }}">
+        <input type="hidden" id="deleteFilename" name="filename" value="">
+    </form>
 
     <!-- Bootstrap JS & Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Handle image modal
-        const imageModal = document.getElementById('imageModal');
-        if (imageModal) {
-            imageModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const imageUrl = button.getAttribute('data-image-url');
-                const imageName = button.getAttribute('data-image-name');
+        let processingModal;
+        let imageModal;
+        let currentImageFilename = '';
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize modals
+            processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
+            imageModal = bootstrap.Modal.getInstance(document.getElementById('imageModal')) || 
+                        new bootstrap.Modal(document.getElementById('imageModal'));
+
+            // Handle image modal
+            const imageModalElement = document.getElementById('imageModal');
+            if (imageModalElement) {
+                imageModalElement.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const imageUrl = button.getAttribute('data-image-url');
+                    const imageName = button.getAttribute('data-image-name');
+                    
+                    const modalImage = document.getElementById('modalImage');
+                    const modalImageName = document.getElementById('modalImageName');
+                    
+                    modalImage.src = imageUrl;
+                    modalImageName.textContent = imageName;
+                    currentImageFilename = imageName;
+                });
+            }
+        });
+
+        function deleteImage(filename, personId) {
+            if (confirm(`Apakah kamu yakin ingin menghapus gambar "${filename}"?`)) {
+                document.getElementById('deleteFilename').value = filename;
+                document.getElementById('processingMessage').textContent = 'Menghapus gambar...';
+                processingModal.show();
+                document.getElementById('deleteImageForm').submit();
+            }
+        }
+
+        function deleteImageFromModal() {
+            if (confirm(`Apakah kamu yakin ingin menghapus gambar "${currentImageFilename}"?`)) {
+                // Hide image modal first
+                imageModal.hide();
                 
-                const modalImage = document.getElementById('modalImage');
-                const modalImageName = document.getElementById('modalImageName');
-                const deleteFilename = document.getElementById('deleteFilename');
-                
-                modalImage.src = imageUrl;
-                modalImageName.textContent = imageName;
-                deleteFilename.value = imageName;
-            });
+                // Set up delete form
+                document.getElementById('deleteFilename').value = currentImageFilename;
+                document.getElementById('processingMessage').textContent = 'Menghapus gambar...';
+                processingModal.show();
+                document.getElementById('deleteImageForm').submit();
+            }
         }
     </script>
 </body>

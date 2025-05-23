@@ -74,28 +74,14 @@
 
                         <!-- Database Actions -->
                         <div class="row g-3">
-                            <div class="col-md-4">
-                                <div class="card h-100">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Update Embeddings</h5>
-                                        <p class="card-text">Lakukan update setiap melakukan edit isi dari database.</p>
-                                        <form action="{{ url_for('admin.admin_update_embeddings') }}" method="POST">
-                                            <button type="submit" class="btn btn-primary" id="update-embeddings-btn"
-                                                onclick="return confirm('Apakah kamu ingin melakukan update pada embedding? Proses ini mungkin akan memakan waktu.');">
-                                                <i class="bi bi-arrow-clockwise me-2"></i>Update Embeddings (SAVE)
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="card h-100">
                                     <div class="card-body">
                                         <h5 class="card-title">Tambah Orang Baru</h5>
                                         <p class="card-text">Upload ZIP berisi foto yang sudah di proses (crop).
                                         </p>
                                         <form action="{{ url_for('admin.admin_add_person') }}" method="POST"
-                                            enctype="multipart/form-data">
+                                            enctype="multipart/form-data" class="needs-processing">
                                             <div class="mb-3">
                                                 <label for="person_name" class="form-label">Nama:</label>
                                                 <input type="text" class="form-control" id="person_name"
@@ -114,7 +100,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="card h-100">
                                     <div class="card-body">
                                         <h5 class="card-title">Audit Database</h5>
@@ -147,13 +133,13 @@
                                         </thead>
                                         <tbody>
                                             {% for person in people_list %}
-                                            <tr>
+                                            <tr data-person-id="{{ person.id }}" data-person-name="{{ person.name }}">
                                                 <td>{{ person.name }}</td>
                                                 <td>{{ person.image_count }}</td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
                                                         <a href="{{ url_for('admin.admin_view_person', person_id=person.id) }}"
-                                                            class="btn btn-info">
+                                                            class="btn btn-info view-person-link">
                                                             <i class="bi bi-eye-fill"></i>
                                                         </a>
                                                         <button type="button" class="btn btn-success"
@@ -168,15 +154,13 @@
                                                             data-person-name="{{ person.name }}">
                                                             <i class="bi bi-pencil-fill"></i>
                                                         </button>
-                                                        <button type="button" class="btn btn-danger" onclick="if(confirm('Apakah kamu yakin ingin menghapus data acuan orang ini?')) {
-                                        document.getElementById('delete-form-{{ person.id }}').submit();
-                                    }">
+                                                        <button type="button" class="btn btn-danger" onclick="deletePerson('{{ person.id }}', '{{ person.name }}')">
                                                             <i class="bi bi-trash-fill"></i>
                                                         </button>
                                                     </div>
                                                     <form id="delete-form-{{ person.id }}"
                                                         action="{{ url_for('admin.admin_delete_person') }}" method="POST"
-                                                        style="display: none;">
+                                                        style="display: none;" class="needs-processing">
                                                         <input type="hidden" name="person_id" value="{{ person.id }}">
                                                     </form>
                                                 </td>
@@ -209,7 +193,7 @@
                 </div>
                 <div class="modal-body">
                     <form id="addPhotoForm" action="{{ url_for('admin.admin_add_photos') }}" method="POST"
-                        enctype="multipart/form-data">
+                        enctype="multipart/form-data" class="needs-processing">
                         <input type="hidden" name="person_id" id="add_person_id">
                         <p>Tambah foto untuk: <strong id="add_person_name"></strong></p>
 
@@ -223,8 +207,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-success"
-                        onclick="document.getElementById('addPhotoForm').submit();">
+                    <button type="button" class="btn btn-success" onclick="submitAddPhotoForm()">
                         <i class="bi bi-plus-circle me-2"></i>Tambah Foto
                     </button>
                 </div>
@@ -241,7 +224,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="editNameForm" action="{{ url_for('admin.admin_edit_person_name') }}" method="POST">
+                    <form id="editNameForm" action="{{ url_for('admin.admin_edit_person_name') }}" method="POST" class="needs-processing">
                         <input type="hidden" name="person_id" id="edit_person_id">
                         <div class="mb-3">
                             <label for="current_name" class="form-label">Nama Sekarang:</label>
@@ -255,8 +238,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-warning"
-                        onclick="document.getElementById('editNameForm').submit();">
+                    <button type="button" class="btn btn-warning" onclick="submitEditNameForm()">
                         <i class="bi bi-save me-2"></i>Simpan Perubahan
                     </button>
                 </div>
@@ -276,7 +258,7 @@
                     <div class="spinner-border text-primary mb-3" role="status">
                         <span class="visually-hidden">Processing...</span>
                     </div>
-                    <p id="processingMessage">Processing . Harap Tunggu...</p>
+                    <p id="processingMessage">Processing. Harap Tunggu...</p>
                 </div>
             </div>
         </div>
@@ -286,20 +268,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        let processingModal;
+
         document.addEventListener("DOMContentLoaded", function () {
-            // Confidence threshold value display (if exists)
-            const confidenceSlider = document.getElementById('confidence_threshold');
-            const thresholdValue = document.getElementById('threshold_value');
+            // Initialize processing modal
+            processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
 
-            if (confidenceSlider && thresholdValue) {
-                // Update on page load
-                thresholdValue.textContent = confidenceSlider.value;
-
-                // Update when slider value changes
-                confidenceSlider.addEventListener('input', function () {
-                    thresholdValue.textContent = this.value;
-                });
-            }
+            // Auto scroll management
+            handleAutoScroll();
 
             // Add Photo Modal
             const addPhotoModal = document.getElementById('addPhotoModal');
@@ -328,35 +304,139 @@
                 });
             }
 
-            // Show processing modal for actions that might take time
-            const formsWithProcessing = document.querySelectorAll(
-                'form[action="{{ url_for("admin.admin_update_embeddings") }}"], ' +
-                'form[action="{{ url_for("admin.admin_add_person") }}"], ' +
-                'form[action="{{ url_for("admin.admin_add_photos") }}"], ' +
-                'form[action="{{ url_for("admin.admin_edit_person_name") }}"]'
-            );
-
+            // Handle form submissions with processing modal
+            const formsWithProcessing = document.querySelectorAll('form.needs-processing');
             formsWithProcessing.forEach(form => {
                 form.addEventListener('submit', function (event) {
-                    // Check if form is valid before showing processing modal
                     if (form.checkValidity()) {
-                        const processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
-                        processingModal.show();
-
-                        // Custom message for different actions
-                        if (form.action.includes('update_embeddings')) {
-                            document.getElementById('processingMessage').textContent = 'Updating embedding wajah. Mohon tunggu beberapa saat...';
-                        } else if (form.action.includes('add_person')) {
-                            document.getElementById('processingMessage').textContent = 'Menambahkan orang baru ke database...';
-                        } else if (form.action.includes('add_photos')) {
-                            document.getElementById('processingMessage').textContent = 'Menambahkan foto baru...';
-                        } else if (form.action.includes('edit_person_name')) {
-                            document.getElementById('processingMessage').textContent = 'Mengubah nama folder...';
-                        }
+                        showProcessingModal(form);
                     }
                 });
             });
+
+            // Handle view person links
+            const viewPersonLinks = document.querySelectorAll('.view-person-link');
+            viewPersonLinks.forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    // Save current scroll position
+                    sessionStorage.setItem('adminScrollPosition', window.pageYOffset.toString());
+                    
+                    // Save the person ID and name that was clicked
+                    const row = this.closest('[data-person-id]');
+                    const personId = row.getAttribute('data-person-id');
+                    const personName = row.getAttribute('data-person-name');
+                    
+                    sessionStorage.setItem('lastViewedPersonId', personId);
+                    sessionStorage.setItem('lastViewedPersonName', personName);
+                });
+            });
         });
+
+        function handleAutoScroll() {
+            // Get current people list
+            const currentPeople = Array.from(document.querySelectorAll('[data-person-id]'))
+                .map(el => ({
+                    id: el.getAttribute('data-person-id'),
+                    name: el.getAttribute('data-person-name')
+                }));
+            
+            // Check if people list has changed
+            const savedPeopleList = sessionStorage.getItem('savedPeopleList');
+            const currentPeopleString = JSON.stringify(currentPeople);
+            
+            if (savedPeopleList && currentPeopleString !== savedPeopleList) {
+                console.log('People list changed, resetting scroll position');
+                sessionStorage.removeItem('adminScrollPosition');
+                sessionStorage.removeItem('lastViewedPersonId');
+                sessionStorage.removeItem('lastViewedPersonName');
+                window.scrollTo(0, 0);
+            } else {
+                // Restore scroll position if people list is the same
+                const savedScrollPosition = sessionStorage.getItem('adminScrollPosition');
+                if (savedScrollPosition) {
+                    window.scrollTo(0, parseInt(savedScrollPosition));
+                }
+                
+                // Scroll to last viewed person if available and no saved scroll position
+                const lastViewedPersonId = sessionStorage.getItem('lastViewedPersonId');
+                if (lastViewedPersonId && !savedScrollPosition) {
+                    const personRows = document.querySelectorAll('[data-person-id]');
+                    personRows.forEach(function(row) {
+                        if (row.getAttribute('data-person-id') === lastViewedPersonId) {
+                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
+                }
+            }
+            
+            // Save current people list for future comparisons
+            sessionStorage.setItem('savedPeopleList', currentPeopleString);
+        }
+
+        function showProcessingModal(form) {
+            // Set appropriate message based on form action
+            let message = 'Processing. Harap Tunggu...';
+            
+            if (form.action.includes('add_person')) {
+                message = 'Menambahkan data acuan orang baru ke database...';
+            } else if (form.action.includes('add_photos')) {
+                message = 'Menambahkan foto baru...';
+            } else if (form.action.includes('edit_person_name')) {
+                message = 'Mengubah nama. Mohon tunggu beberapa saat...';
+            } else if (form.action.includes('delete_person')) {
+                message = 'Menghapus data acuan ini dari database...';
+            }
+            
+            document.getElementById('processingMessage').textContent = message;
+            processingModal.show();
+        }
+
+        function submitAddPhotoForm() {
+            const form = document.getElementById('addPhotoForm');
+            if (form.checkValidity()) {
+                // Hide the add photo modal first
+                const addPhotoModal = bootstrap.Modal.getInstance(document.getElementById('addPhotoModal'));
+                addPhotoModal.hide();
+                
+                // Show processing modal
+                showProcessingModal(form);
+                
+                // Submit the form
+                form.submit();
+            } else {
+                form.reportValidity();
+            }
+        }
+
+        function submitEditNameForm() {
+            const form = document.getElementById('editNameForm');
+            if (form.checkValidity()) {
+                // Hide the edit name modal first
+                const editNameModal = bootstrap.Modal.getInstance(document.getElementById('editNameModal'));
+                editNameModal.hide();
+                
+                // Show processing modal
+                showProcessingModal(form);
+                
+                // Submit the form
+                form.submit();
+            } else {
+                form.reportValidity();
+            }
+        }
+
+        function deletePerson(personId, personName) {
+            if (confirm(`Apakah kamu yakin ingin menghapus data acuan untuk "${personName}"?`)) {
+                const form = document.getElementById('delete-form-' + personId);
+                showProcessingModal(form);
+                form.submit();
+            }
+        }
+
+        // Save scroll position when user scrolls
+        window.addEventListener('scroll', function() {
+            sessionStorage.setItem('adminScrollPosition', window.pageYOffset.toString());
+        }, { passive: true });
     </script>
 </body>
 

@@ -15,6 +15,45 @@ import config
 # Create Blueprint
 admin_bp = Blueprint('admin', __name__, template_folder='templates')
 
+# --- Helper Functions ---
+def auto_update_embeddings():
+    """Automatically update face embeddings after database changes."""
+    try:
+        # Use fixed confidence threshold of 0.6
+        confidence_threshold = 0.6
+           
+        # Import face embedding update function from the correct location
+        from embedding_manager_utils.update_face_embeddings import update_face_embeddings
+       
+        # Call the update function with database path and other parameters
+        result = update_face_embeddings(
+            database_dir=current_app.config['DATABASE_FOLDER'],
+            output_path="face_embeddings.pkl",
+            metadata_path="face_embeddings_metadata.pkl",
+            confidence_threshold=confidence_threshold
+        )
+       
+        return {
+            'success': True,
+            'message': ""
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error saat updating embeddings: {str(e)}'
+        }
+
+def update_session_message(base_message, auto_update_result, message_type='success'):
+    """Update session message with auto-update result."""
+    if auto_update_result['success']:
+        full_message = f"{base_message}. {auto_update_result['message']}"
+        session['admin_message'] = full_message
+        session['admin_message_type'] = message_type
+    else:
+        full_message = f"{base_message}. WARNING: {auto_update_result['message']}"
+        session['admin_message'] = full_message
+        session['admin_message_type'] = 'warning'
+
 # --- Admin Authentication Routes ---
 @admin_bp.route('/login', methods=['POST'])
 def admin_login():
@@ -361,8 +400,11 @@ def admin_add_person():
         # Clean up temp folder
         shutil.rmtree(temp_folder)
         
-        session['admin_message'] = f'Berhasil menambahkan {person_name} dengan {len(image_files)} foto'
-        session['admin_message_type'] = 'success'
+        # AUTO-UPDATE EMBEDDINGS
+        base_message = f'Berhasil menambahkan {person_name} dengan {len(image_files)} foto'
+        auto_update_result = auto_update_embeddings()
+        update_session_message(base_message, auto_update_result, 'success')
+        
     except Exception as e:
         session['admin_message'] = f'Error adding person: {str(e)}'
         session['admin_message_type'] = 'danger'
@@ -435,17 +477,21 @@ def admin_delete_image():
         # Delete the image file
         os.remove(image_path)
         
-        session['admin_message'] = f'Berhasil menghapus gambar: {filename}'
-        session['admin_message_type'] = 'success'
-        
-        # Check if this was the last image, if so, maybe prompt to delete the person
+        # Check if this was the last image
         person_folder = os.path.join(current_app.config['DATABASE_FOLDER'], person_id)
         remaining_images = [f for f in os.listdir(person_folder) 
                           if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
         
         if not remaining_images:
-            session['admin_message'] = f'Deleted the last image for {person_id}. Consider removing this person.'
+            base_message = f'Deleted the last image for {person_id}. Consider removing this person.'
+            # Don't auto-update embeddings if no images remain
+            session['admin_message'] = base_message
             session['admin_message_type'] = 'warning'
+        else:
+            # AUTO-UPDATE EMBEDDINGS
+            base_message = f'Berhasil menghapus gambar: {filename}'
+            auto_update_result = auto_update_embeddings()
+            update_session_message(base_message, auto_update_result, 'success')
             
     except Exception as e:
         session['admin_message'] = f'Error deleting image: {str(e)}'
@@ -475,8 +521,11 @@ def admin_delete_person():
         # Delete person folder
         shutil.rmtree(person_folder)
         
-        session['admin_message'] = f'Berhasil menghapus data {person_id}'
-        session['admin_message_type'] = 'success'
+        # AUTO-UPDATE EMBEDDINGS
+        base_message = f'Berhasil menghapus data {person_id}'
+        auto_update_result = auto_update_embeddings()
+        update_session_message(base_message, auto_update_result, 'success')
+        
     except Exception as e:
         session['admin_message'] = f'Error deleting person: {str(e)}'
         session['admin_message_type'] = 'danger'
@@ -546,8 +595,10 @@ def admin_add_photos():
                 print(f"Error saving file {file.filename}: {e}")
     
     if files_saved > 0:
-        session['admin_message'] = f'Berhasil menambahkan {files_saved} foto baru untuk {person_id}'
-        session['admin_message_type'] = 'success'
+        # AUTO-UPDATE EMBEDDINGS
+        base_message = f'Berhasil menambahkan {files_saved} foto baru untuk {person_id}'
+        auto_update_result = auto_update_embeddings()
+        update_session_message(base_message, auto_update_result, 'success')
     else:
         session['admin_message'] = 'No files were saved due to errors'
         session['admin_message_type'] = 'warning'
@@ -593,8 +644,10 @@ def admin_edit_person_name():
             # Rename folder
             os.rename(old_folder_path, new_folder_path)
             
-            session['admin_message'] = f'Berhasil rename {person_id} ke {new_name}'
-            session['admin_message_type'] = 'success'
+            # AUTO-UPDATE EMBEDDINGS
+            base_message = f'Berhasil rename {person_id} ke {new_name}'
+            auto_update_result = auto_update_embeddings()
+            update_session_message(base_message, auto_update_result, 'success')
         else:
             session['admin_message'] = 'Tidak ada perubahan yang dilakukan pada nama'
             session['admin_message_type'] = 'info'
@@ -634,7 +687,7 @@ def admin_reprocess_embeddings():
             # Create success message with statistics
             message = (
                 f"Face embeddings telah diproses ulang! "
-                f"{result.get('total_problematic_files', 0)} Total file foto bermasalah telah di proses ulang"
+                f"{result.get('total_problematic_files', 0)} total file foto bermasalah telah di proses ulang"
             )
             session['admin_message'] = message
             session['admin_message_type'] = 'success'
