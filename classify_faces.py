@@ -8,6 +8,7 @@ import cv2
 import utils
 import threading
 import time
+from datetime import datetime
 
 # Global flag untuk mengontrol proses
 processing_cancelled = threading.Event()
@@ -61,6 +62,10 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
     # Reset flag pembatalan setiap kali memulai klasifikasi baru
     reset_cancel_flag()
     
+    # Catat waktu mulai proses
+    print(f"Starting classification process at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    start_time = time.time()
+    
     try:
         # Muat embedding paling baru (dengan deteksi perubahan file otomatis)
         known_embeddings = load_embeddings()
@@ -72,7 +77,7 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
         unknown_folder = os.path.join(output_folder, "UNKNOWN")
         visualized_folder = os.path.join(output_folder, "VISUALIZED")
         labels_folder = os.path.join(output_folder, "labels")
-        low_conf_folder = os.path.join(output_folder, "low_confidence")
+        low_conf_folder = os.path.join(output_folder, "LOW CONFIDENCE")
 
         # Membuat folder yang diperlukan
         os.makedirs(output_folder, exist_ok=True)
@@ -98,7 +103,7 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
                 # Bersihkan folder output jika proses dibatalkan
                 if os.path.exists(output_folder):
                     shutil.rmtree(output_folder)
-                return None, None
+                return None, None, None
                 
             batch_files = image_files[i:i+batch_size]
             batch_images = []
@@ -216,7 +221,7 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
             # Bersihkan folder output jika proses dibatalkan
             if os.path.exists(output_folder):
                 shutil.rmtree(output_folder)
-            return None, None
+            return None, None, None
 
         # Setelah selesai, buat file ZIP dari output folder
         zip_output_folder = 'zip'
@@ -227,11 +232,32 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
         
         utils.zip_folder(output_folder, zip_output_path)
 
-        return output_folder, zip_output_path
+        # Hitung total waktu pemrosesan
+        end_time = time.time()
+        processing_time = end_time - start_time
+        
+        # Print summary dengan waktu pemrosesan
+        print("\n" + "=" * 50)
+        print("CLASSIFICATION SUMMARY")
+        print("=" * 50)
+        print(f"Input folder: {input_folder}")
+        print(f"Output folder: {output_folder}")
+        print(f"Total images processed: {len(image_files)}")
+        print(f"Processing time: {processing_time:.2f} seconds")
+        print("=" * 50)
+        print(f"Classification completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+        return output_folder, zip_output_path, processing_time
         
     except Exception as e:
+        # Hitung waktu meskipun terjadi error
+        end_time = time.time()
+        processing_time = end_time - start_time
+        
         print(f"Error during processing: {str(e)}")
+        print(f"Processing time before error: {processing_time:.2f} seconds")
+        
         # Bersihkan folder output jika terjadi error
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
-        return None, None
+        return None, None, None

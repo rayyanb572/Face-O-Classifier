@@ -71,7 +71,8 @@ def index():
         output_path=output_path,
         original_folder_name=session.get('original_folder_name'),
         is_output_folder_empty=output_folder_empty,
-        zip_available=session.get('zip_path') is not None
+        zip_available=session.get('zip_path') is not None,
+        processing_time=session.get('processing_time')  # Add processing time to template
     )
 
 processing_status = {}
@@ -218,9 +219,14 @@ def upload_file():
     # Mulai klasifikasi wajah
     # Ubah: Hapus session ID dari nama folder output
     output_folder_name = "(Classified) " + extracted_folder_name
-    output_folder, output_zip_path = classify_faces(extracted_folder_path, output_folder=output_folder_name)
+    
+    # Capture the processing time from classify_faces function
+    output_folder, output_zip_path, processing_time = classify_faces(extracted_folder_path, output_folder=output_folder_name)
+    
+    # Store all results in session
     session['output_path'] = output_folder
     session['zip_path'] = output_zip_path
+    session['processing_time'] = processing_time  # Store processing time in session
     session['upload_complete'] = True
     
     return redirect(url_for('index'))

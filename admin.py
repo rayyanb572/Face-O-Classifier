@@ -68,8 +68,7 @@ def admin_login():
         session['admin_logged_in'] = True
         return redirect(url_for('admin.admin_panel'))
     else:
-        flash('Invalid username or password', 'danger')
-        # Redirect back to index with a login_error parameter
+
         return redirect(url_for('index', login_error='true'))
 
 def admin_required(func):

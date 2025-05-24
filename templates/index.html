@@ -91,6 +91,11 @@
 
                             <div class="alert alert-success">
                                 <i class="bi bi-check-circle-fill me-2"></i>Processing Complete.
+                                {% if processing_time %}
+                                <span class="text-muted small">
+                                    ({{ "%.2f"|format(processing_time) }}s)
+                                </span>
+                                {% endif %}
                             </div>
 
                             <div class="d-flex justify-content-center gap-3 flex-wrap">
@@ -138,23 +143,10 @@
                         aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Add an alert container for login errors -->
                     <div id="loginAlert" class="alert alert-danger d-none" role="alert">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
                         <span id="loginErrorMessage">Invalid username or password</span>
                     </div>
-
-                    <!-- Display Flask flash messages if any -->
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ category }}" role="alert">
-                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                    {{ message }}
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
 
                     <form id="adminLoginForm" action="/admin/login" method="POST">
                         <div class="mb-3">
@@ -403,15 +395,16 @@
             adminLoginModal.show();
         }
 
-        // Handle login error display
+        // Handle login form submission - reset error message
         document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
-            // Reset any existing error message
+            // Reset any existing error message when user tries to login again
             const loginAlert = document.getElementById('loginAlert');
             loginAlert.classList.add('d-none');
         });
 
-        // Jika spinner aktif saat halaman dimuat ulang, lanjutkan pengecekan status
+        // Window load event handler
         window.addEventListener('load', function () {
+            // If spinner is active when page reloads, continue status checking
             if (document.getElementById('loadingSpinner').style.display === 'block') {
                 const folderName = document.getElementById('processingFolder').textContent;
                 startProcessingCheck(folderName);
@@ -420,8 +413,14 @@
             // Check if there's a URL parameter indicating login failure
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('login_error') === 'true') {
+                // Show admin login modal
                 showAdminLogin();
+                // Show the single alert
                 document.getElementById('loginAlert').classList.remove('d-none');
+                
+                // Clean up URL parameter for better UX
+                const newUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
             }
         });
     </script>
