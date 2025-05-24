@@ -155,7 +155,7 @@
         });
 
         function deleteImage(filename, personId) {
-            if (confirm(`Apakah kamu yakin ingin menghapus gambar "${filename}"?`)) {
+            if (confirm(`Apakah anda yakin ingin menghapus gambar "${filename}"?`)) {
                 document.getElementById('deleteFilename').value = filename;
                 document.getElementById('processingMessage').textContent = 'Menghapus gambar...';
                 processingModal.show();
@@ -164,7 +164,7 @@
         }
 
         function deleteImageFromModal() {
-            if (confirm(`Apakah kamu yakin ingin menghapus gambar "${currentImageFilename}"?`)) {
+            if (confirm(`Apakah anda yakin ingin menghapus gambar "${currentImageFilename}"?`)) {
                 // Hide image modal first
                 imageModal.hide();
                 

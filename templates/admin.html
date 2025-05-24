@@ -426,7 +426,7 @@
         }
 
         function deletePerson(personId, personName) {
-            if (confirm(`Apakah kamu yakin ingin menghapus data acuan untuk "${personName}"?`)) {
+            if (confirm(`Apakah anda yakin ingin menghapus data acuan untuk "${personName}"?`)) {
                 const form = document.getElementById('delete-form-' + personId);
                 showProcessingModal(form);
                 form.submit();

@@ -77,20 +77,17 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
         unknown_folder = os.path.join(output_folder, "UNKNOWN")
         visualized_folder = os.path.join(output_folder, "VISUALIZED")
         labels_folder = os.path.join(output_folder, "labels")
-        low_conf_folder = os.path.join(output_folder, "LOW CONFIDENCE")
 
         # Membuat folder yang diperlukan
         os.makedirs(output_folder, exist_ok=True)
         os.makedirs(unknown_folder, exist_ok=True)
         os.makedirs(visualized_folder, exist_ok=True)
         os.makedirs(labels_folder, exist_ok=True)
-        os.makedirs(low_conf_folder, exist_ok=True)
         
         # Bersihkan folder untuk memastikan tidak ada file sisa
         utils.clear_folder(unknown_folder)
         utils.clear_folder(visualized_folder)
         utils.clear_folder(labels_folder)
-        utils.clear_folder(low_conf_folder)
 
         # Ambil semua file gambar dari folder input
         image_files = [f for f in os.listdir(input_folder) if f.lower().endswith((".jpg", ".png", ".jpeg"))]
@@ -141,13 +138,13 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
                 image_path = paths[j]
 
                 if not result or not result.boxes:
+                    # Tidak ada wajah terdeteksi, skip gambar ini
                     continue
 
                 bboxes = []
                 confidences = []
                 face_crops = []
                 coords = []
-                passed_threshold = False
                 identified_faces = False
 
                 # Proses setiap bounding box hasil deteksi
@@ -161,7 +158,6 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
                     if conf < confidence_threshold:
                         continue
 
-                    passed_threshold = True
                     face = utils.crop_face(image, bbox)
                     face_rgb = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
                     face_resized = cv2.resize(face_rgb, (160, 160))
@@ -173,12 +169,7 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
                 if processing_cancelled.is_set():
                     continue
 
-                # Kalau tidak ada deteksi yang lolos threshold, simpan ke folder low_confidence
-                if not passed_threshold:
-                    shutil.copy(image_path, low_conf_folder)
-                    continue
-
-                # Kalau ada wajah yang terdeteksi, lakukan ekstraksi embedding
+                # Kalau ada wajah yang terdeteksi dan lolos threshold, lakukan ekstraksi embedding
                 if face_crops:
                     embeddings = embedder.embeddings(face_crops)
 
@@ -214,8 +205,6 @@ def classify_faces(input_folder, output_folder=None, confidence_threshold=0.6, b
 
                     # Simpan anotasi bounding box ke format YOLO
                     utils.save_yolo_annotation(labels_folder, image_name, image.shape, bboxes, confidences)
-                else:
-                    shutil.copy(image_path, low_conf_folder)
 
         if processing_cancelled.is_set():
             # Bersihkan folder output jika proses dibatalkan
