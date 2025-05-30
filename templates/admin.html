@@ -15,18 +15,16 @@
 
     <!-- Icon Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  
 
-    <!-- CSS Custom -->
-    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 
 <body>
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
-                <div class="card shadow-sm">
-                    <div
-                        class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                <div class="card shadow-sm card-enhanced">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
                         <h1 class="h3 mb-0">Manage Database</h1>
                         <a href="{{ url_for('index') }}" class="btn btn-sm btn-light">
                             <i class="bi bi-house-fill me-2"></i>Home
@@ -46,82 +44,100 @@
                         </div>
                         {% endif %}
 
-                        <!-- Database Statistics -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-light">
-                                <h5 class="mb-0">Statistik Database</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="border rounded p-3 text-center">
-                                            <h2 class="text-primary">{{ db_stats.total_people|default('0') }}</h2>
-                                            <p class="text-muted mb-0">Total Orang</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="border rounded p-3 text-center">
-                                            <h2 class="text-success">{{ db_stats.total_images|default('0') }}</h2>
-                                            <p class="text-muted mb-0">Total Foto</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="border rounded p-3 text-center">
-                                            <h2 class="text-info">{{ db_stats.last_updated|default('Never') }}</h2>
-                                            <p class="text-muted mb-0">Last Updated</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Database Actions -->
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Tambah Orang Baru</h5>
-                                        <p class="card-text">Upload ZIP berisi foto yang sudah di proses (crop).
-                                        </p>
+                        <!-- Database Actions Layout -->
+                        <div class="row g-3 mb-4">
+                            <!-- Add New Person (Left - Full Height) -->
+                            <div class="col-lg-6">
+                                <div class="card card-enhanced h-100 d-flex flex-column">
+                                    <div class="card-body d-flex flex-column">
+                                        <h5 class="card-title text-success">
+                                            <i class="bi bi-person-plus-fill me-2"></i>Tambah Orang Baru
+                                        </h5>
+                                        <p class="card-text">Upload ZIP berisi foto yang sudah di proses (crop).</p>
                                         <form action="{{ url_for('admin.admin_add_person') }}" method="POST"
-                                            enctype="multipart/form-data" class="needs-processing">
+                                            enctype="multipart/form-data" class="needs-processing d-flex flex-column flex-grow-1">
                                             <div class="mb-3">
                                                 <label for="person_name" class="form-label">Nama:</label>
                                                 <input type="text" class="form-control" id="person_name"
                                                     name="person_name" required>
                                             </div>
                                             <div class="mb-3">
-                                                <label for="person_images" class="form-label">Upload File
-                                                    (ZIP):</label>
+                                                <label for="person_images" class="form-label">Upload File (ZIP):</label>
                                                 <input type="file" class="form-control" id="person_images"
                                                     name="person_images" accept=".zip" required>
                                             </div>
-                                            <button type="submit" class="btn btn-success">
-                                                <i class="bi bi-person-plus-fill me-2"></i>Tambah
-                                            </button>
+                                            <div class="mt-auto">
+                                                <button type="submit" class="btn btn-success w-100">
+                                                    <i class="bi bi-person-plus-fill me-2"></i>Tambah
+                                                </button>
+                                            </div>
                                         </form>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Audit Database</h5>
-                                        <p class="card-text">Melakukan cek pada database untuk mencari inkonsistensi
-                                            antara jumlah
-                                            foto dan embedding.</p>
-                                        <a href="{{ url_for('admin.admin_audit') }}" class="btn btn-info">
-                                            <i class="bi bi-search me-2"></i>Audit Database
-                                        </a>
+
+                            <!-- Right Column (Statistics + Audit) -->
+                            <div class="col-lg-6">
+                                <div class="row g-3 h-100">
+                                    <!-- Statistics Database (Top Right) -->
+                                    <div class="col-12">
+                                        <div class="card card-enhanced">
+                                            <div class="card-header bg-light">
+                                                <h5 class="mb-0">
+                                                    <i class="bi bi-bar-chart-fill me-2"></i>Statistik Database
+                                                </h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row text-center mb-3">
+                                                    <div class="col-6">
+                                                        <div class="d-flex flex-column h-100 justify-content-center">
+                                                            <h3 class="text-primary mb-1">{{ db_stats.total_people|default('0') }}</h3>
+                                                            <small class="text-muted">Total Orang</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="d-flex flex-column h-100 justify-content-center">
+                                                            <h3 class="text-success mb-1">{{ db_stats.total_images|default('0') }}</h3>
+                                                            <small class="text-muted">Total Foto</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="border-top pt-3">
+                                                    <div class="row text-center">
+                                                        <div class="col-12">
+                                                            <h4 class="text-info mb-1">{{ db_stats.last_updated|default('Never') }}</h4>
+                                                            <small class="text-muted">Last Updated</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Audit Database (Bottom Right) -->
+                                    <div class="col-12">
+                                        <div class="card card-enhanced">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-info">
+                                                    <i class="bi bi-search me-2"></i>Audit Database
+                                                </h5>
+                                                <p class="card-text">Melakukan cek pada database untuk mencari inkonsistensi antara jumlah foto dan embedding.</p>
+                                                <a href="{{ url_for('admin.admin_audit') }}" class="btn btn-info">
+                                                    <i class="bi bi-search me-2"></i>Audit Database
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Database Contents -->
-                        <div class="card mt-4">
+                        <div class="card card-enhanced">
                             <div class="card-header bg-light">
-                                <h5 class="mb-0">Isi Database</h5>
+                                <h5 class="mb-0">
+                                    <i class="bi bi-people-fill me-2"></i>Isi Database
+                                </h5>
                             </div>
                             <div class="card-body">
                                 {% if people_list %}
@@ -174,8 +190,7 @@
                                 </div>
                                 {% else %}
                                 <div class="alert alert-warning">
-                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Tidak Terdapat Orang Di
-                                    Database.
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Tidak Terdapat Orang Di Database.
                                 </div>
                                 {% endif %}
                             </div>
