@@ -5,6 +5,9 @@
     <!-- CSS Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <!-- Google Fonts - Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Meta tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -53,11 +56,11 @@
                                                 data-bs-target="#imageModal" 
                                                 data-image-url="{{ image.url }}" 
                                                 data-image-name="{{ image.filename }}">
-                                                <i class="bi bi-eye-fill"></i> View
+                                                <i class="bi bi-eye-fill"></i> Lihat
                                             </button>
                                             <button type="button" class="btn btn-sm btn-danger" 
                                                 onclick="deleteImage('{{ image.filename }}', '{{ person.id }}')">
-                                                <i class="bi bi-trash-fill"></i> Delete
+                                                <i class="bi bi-trash-fill"></i> Hapus
                                             </button>
                                         </div>
                                     </div>
@@ -90,9 +93,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-danger" onclick="deleteImageFromModal()">
-                        <i class="bi bi-trash-fill me-2"></i>Delete Image
+                        <i class="bi bi-trash-fill me-2"></i>Hapus
                     </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>

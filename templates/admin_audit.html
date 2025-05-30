@@ -90,21 +90,18 @@
                                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
                                         Perbedaan jumlah: {{ audit_result.summary.difference|abs }}
                                         <hr>
-                                        <p class="mb-0">Jika embedding lebih banyak dari file foto, kemungkinan
+                                        <p class="mb-0">Jika embedding lebih banyak dari dari satu pada salah satu file foto acuan, kemungkinan
                                             penyebab:</p>
                                         <ul>
-                                            <li>Ada beberapa file foto yang sudah dihapus tapi embeddingnya masih ada
-                                                (coba lakukan update)</li>
-                                            <li>Beberapa file memiliki lebih dari satu wajah saat pemrosesan (pastikan
+                                            <li>File memiliki lebih dari satu wajah yang terdeteksi saat pemrosesan (pastikan
                                                 hanya ada satu wajah pada tiap foto acuan)</li>
                                         </ul>
                                         <hr>
-                                        <p class="mb-0">Jika file foto lebih banyak dari embedding, kemungkinan
+                                        <p class="mb-0">Jika file foto lebih banyak dari jumlah embedding, kemungkinan
                                             penyebab:</p>
                                         <ul>
                                             <li>Beberapa file foto tidak terdeteksi wajah saat proses pembuatan
                                                 embedding (coba lakukan reproses)</li>
-                                            <li>Beberapa file foto gagal dibaca karena kesalahan format</li>
                                         </ul>
                                     </div>
                                     {% endif %}
@@ -133,9 +130,8 @@
                                                                 Atur nilai minimum confidence score untuk memproses
                                                                 ulang foto
                                                                 wajah yang bermasalah.
-                                                                Semakin rendah nilai, semakin toleran terhadap wajah
-                                                                kurang
-                                                                jelas.
+                                                                Semakin rendah nilai, semakin toleran terhadap wajah yang 
+                                                                kurang jelas.
                                                             </p>
 
                                                             <div class="mb-3">
