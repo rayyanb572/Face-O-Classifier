@@ -15,8 +15,9 @@
 
     <!-- Icon Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  
 
+    <!-- CSS Custom -->
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 
 <body>
@@ -24,7 +25,8 @@
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <div class="card shadow-sm card-enhanced">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                    <div
+                        class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
                         <h1 class="h3 mb-0">Manage Database</h1>
                         <a href="{{ url_for('index') }}" class="btn btn-sm btn-light">
                             <i class="bi bi-house-fill me-2"></i>Home
@@ -55,7 +57,8 @@
                                         </h5>
                                         <p class="card-text">Upload ZIP berisi foto yang sudah di proses (crop).</p>
                                         <form action="{{ url_for('admin.admin_add_person') }}" method="POST"
-                                            enctype="multipart/form-data" class="needs-processing d-flex flex-column flex-grow-1">
+                                            enctype="multipart/form-data"
+                                            class="needs-processing d-flex flex-column flex-grow-1">
                                             <div class="mb-3">
                                                 <label for="person_name" class="form-label">Nama:</label>
                                                 <input type="text" class="form-control" id="person_name"
@@ -91,13 +94,15 @@
                                                 <div class="row text-center mb-3">
                                                     <div class="col-6">
                                                         <div class="d-flex flex-column h-100 justify-content-center">
-                                                            <h3 class="text-primary mb-1">{{ db_stats.total_people|default('0') }}</h3>
+                                                            <h3 class="text-primary mb-1">{{
+                                                                db_stats.total_people|default('0') }}</h3>
                                                             <small class="text-muted">Total Orang</small>
                                                         </div>
                                                     </div>
-                                                    <div class="col-6">
+                                                    <div class="col-6 border-start">
                                                         <div class="d-flex flex-column h-100 justify-content-center">
-                                                            <h3 class="text-success mb-1">{{ db_stats.total_images|default('0') }}</h3>
+                                                            <h3 class="text-success mb-1">{{
+                                                                db_stats.total_images|default('0') }}</h3>
                                                             <small class="text-muted">Total Foto</small>
                                                         </div>
                                                     </div>
@@ -105,7 +110,8 @@
                                                 <div class="border-top pt-3">
                                                     <div class="row text-center">
                                                         <div class="col-12">
-                                                            <h4 class="text-info mb-1">{{ db_stats.last_updated|default('Never') }}</h4>
+                                                            <h4 class="text-info mb-1">{{
+                                                                db_stats.last_updated|default('Never') }}</h4>
                                                             <small class="text-muted">Last Updated</small>
                                                         </div>
                                                     </div>
@@ -121,7 +127,8 @@
                                                 <h5 class="card-title text-info">
                                                     <i class="bi bi-search me-2"></i>Audit Database
                                                 </h5>
-                                                <p class="card-text">Melakukan cek pada database untuk mencari inkonsistensi antara jumlah foto dan embedding.</p>
+                                                <p class="card-text">Melakukan cek pada database untuk mencari
+                                                    inkonsistensi antara jumlah foto dan embedding.</p>
                                                 <a href="{{ url_for('admin.admin_audit') }}" class="btn btn-info">
                                                     <i class="bi bi-search me-2"></i>Audit Database
                                                 </a>
@@ -173,13 +180,14 @@
                                                             data-person-name="{{ person.name }}">
                                                             <i class="bi bi-pencil-fill"></i>
                                                         </button>
-                                                        <button type="button" class="btn btn-danger" onclick="deletePerson('{{ person.id }}', '{{ person.name }}')">
+                                                        <button type="button" class="btn btn-danger"
+                                                            onclick="deletePerson('{{ person.id }}', '{{ person.name }}')">
                                                             <i class="bi bi-trash-fill"></i>
                                                         </button>
                                                     </div>
                                                     <form id="delete-form-{{ person.id }}"
-                                                        action="{{ url_for('admin.admin_delete_person') }}" method="POST"
-                                                        style="display: none;" class="needs-processing">
+                                                        action="{{ url_for('admin.admin_delete_person') }}"
+                                                        method="POST" style="display: none;" class="needs-processing">
                                                         <input type="hidden" name="person_id" value="{{ person.id }}">
                                                     </form>
                                                 </td>
@@ -190,7 +198,8 @@
                                 </div>
                                 {% else %}
                                 <div class="alert alert-warning">
-                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Tidak Terdapat Orang Di Database.
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Tidak Terdapat Orang Di
+                                    Database.
                                 </div>
                                 {% endif %}
                             </div>
@@ -207,7 +216,8 @@
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title" id="addPhotoModalLabel">Tambah Foto</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addPhotoForm" action="{{ url_for('admin.admin_add_photos') }}" method="POST"
@@ -242,7 +252,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="editNameForm" action="{{ url_for('admin.admin_edit_person_name') }}" method="POST" class="needs-processing">
+                    <form id="editNameForm" action="{{ url_for('admin.admin_edit_person_name') }}" method="POST"
+                        class="needs-processing">
                         <input type="hidden" name="person_id" id="edit_person_id">
                         <div class="mb-3">
                             <label for="current_name" class="form-label">Nama Sekarang:</label>
@@ -334,16 +345,16 @@
 
             // Handle view person links
             const viewPersonLinks = document.querySelectorAll('.view-person-link');
-            viewPersonLinks.forEach(function(link) {
-                link.addEventListener('click', function(e) {
+            viewPersonLinks.forEach(function (link) {
+                link.addEventListener('click', function (e) {
                     // Save current scroll position
                     sessionStorage.setItem('adminScrollPosition', window.pageYOffset.toString());
-                    
+
                     // Save the person ID and name that was clicked
                     const row = this.closest('[data-person-id]');
                     const personId = row.getAttribute('data-person-id');
                     const personName = row.getAttribute('data-person-name');
-                    
+
                     sessionStorage.setItem('lastViewedPersonId', personId);
                     sessionStorage.setItem('lastViewedPersonName', personName);
                 });
@@ -357,11 +368,11 @@
                     id: el.getAttribute('data-person-id'),
                     name: el.getAttribute('data-person-name')
                 }));
-            
+
             // Check if people list has changed
             const savedPeopleList = sessionStorage.getItem('savedPeopleList');
             const currentPeopleString = JSON.stringify(currentPeople);
-            
+
             if (savedPeopleList && currentPeopleString !== savedPeopleList) {
                 console.log('People list changed, resetting scroll position');
                 sessionStorage.removeItem('adminScrollPosition');
@@ -374,19 +385,19 @@
                 if (savedScrollPosition) {
                     window.scrollTo(0, parseInt(savedScrollPosition));
                 }
-                
+
                 // Scroll to last viewed person if available and no saved scroll position
                 const lastViewedPersonId = sessionStorage.getItem('lastViewedPersonId');
                 if (lastViewedPersonId && !savedScrollPosition) {
                     const personRows = document.querySelectorAll('[data-person-id]');
-                    personRows.forEach(function(row) {
+                    personRows.forEach(function (row) {
                         if (row.getAttribute('data-person-id') === lastViewedPersonId) {
                             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
                     });
                 }
             }
-            
+
             // Save current people list for future comparisons
             sessionStorage.setItem('savedPeopleList', currentPeopleString);
         }
@@ -394,7 +405,7 @@
         function showProcessingModal(form) {
             // Set appropriate message based on form action
             let message = 'Processing. Harap Tunggu...';
-            
+
             if (form.action.includes('add_person')) {
                 message = 'Menambahkan data acuan orang baru ke database...';
             } else if (form.action.includes('add_photos')) {
@@ -404,7 +415,7 @@
             } else if (form.action.includes('delete_person')) {
                 message = 'Menghapus data acuan ini dari database...';
             }
-            
+
             document.getElementById('processingMessage').textContent = message;
             processingModal.show();
         }
@@ -415,10 +426,10 @@
                 // Hide the add photo modal first
                 const addPhotoModal = bootstrap.Modal.getInstance(document.getElementById('addPhotoModal'));
                 addPhotoModal.hide();
-                
+
                 // Show processing modal
                 showProcessingModal(form);
-                
+
                 // Submit the form
                 form.submit();
             } else {
@@ -432,10 +443,10 @@
                 // Hide the edit name modal first
                 const editNameModal = bootstrap.Modal.getInstance(document.getElementById('editNameModal'));
                 editNameModal.hide();
-                
+
                 // Show processing modal
                 showProcessingModal(form);
-                
+
                 // Submit the form
                 form.submit();
             } else {
@@ -452,7 +463,7 @@
         }
 
         // Save scroll position when user scrolls
-        window.addEventListener('scroll', function() {
+        window.addEventListener('scroll', function () {
             sessionStorage.setItem('adminScrollPosition', window.pageYOffset.toString());
         }, { passive: true });
     </script>
