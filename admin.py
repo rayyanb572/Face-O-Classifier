@@ -12,20 +12,21 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from werkzeug.utils import secure_filename
 import config
 
-# Create Blueprint
+# Membuat Blueprint untuk admin
 admin_bp = Blueprint('admin', __name__, template_folder='templates')
 
-# --- Helper Functions ---
+# --- Fungsi Helper ---
+
+# Fungsi untuk memperbarui embeddings wajah secara otomatis setelah perubahan database
 def auto_update_embeddings():
-    """Automatically update face embeddings after database changes."""
     try:
-        # Use fixed confidence threshold of 0.6
+        # Menggunakan ambang batas kepercayaan tetap 0.6
         confidence_threshold = 0.6
            
-        # Import face embedding update function from the correct location
+        # Import fungsi update embeddings wajah dari lokasi yang benar
         from embedding_manager_utils.update_face_embeddings import update_face_embeddings
        
-        # Call the update function with database path and other parameters
+        # Memanggil fungsi update dengan path database dan parameter lainnya
         result = update_face_embeddings(
             database_dir=current_app.config['DATABASE_FOLDER'],
             output_path="face_embeddings.pkl",
@@ -43,8 +44,8 @@ def auto_update_embeddings():
             'message': f'Error saat updating embeddings: {str(e)}'
         }
 
+# Fungsi untuk memperbarui pesan session dengan hasil auto-update
 def update_session_message(base_message, auto_update_result, message_type='success'):
-    """Update session message with auto-update result."""
     if auto_update_result['success']:
         full_message = f"{base_message}. {auto_update_result['message']}"
         session['admin_message'] = full_message
@@ -54,25 +55,25 @@ def update_session_message(base_message, auto_update_result, message_type='succe
         session['admin_message'] = full_message
         session['admin_message_type'] = 'warning'
 
-# --- Admin Authentication Routes ---
+# --- Route Autentikasi Admin ---
+
+# Menangani login admin
 @admin_bp.route('/login', methods=['POST'])
 def admin_login():
-    """Handle admin login."""
     username = request.form.get('username')
     password = request.form.get('password')
     
-    # Hash the password
+    # Hash password
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
     
     if username == config.ADMIN_USERNAME and hashed_password == config.ADMIN_PASSWORD:
         session['admin_logged_in'] = True
         return redirect(url_for('admin.admin_panel'))
     else:
-
         return redirect(url_for('index', login_error='true'))
 
+# Decorator untuk memerlukan login admin
 def admin_required(func):
-    """Decorator to require admin login."""
     @wraps(func)
     def decorated_function(*args, **kwargs):
         if not session.get('admin_logged_in'):
@@ -80,10 +81,8 @@ def admin_required(func):
         return func(*args, **kwargs)
     return decorated_function
 
-# Tambahkan fungsi untuk audit database
+# Fungsi untuk mengaudit database wajah guna mendeteksi perbedaan antara file foto dan embeddings
 def audit_face_database():
-    """Mengaudit database wajah untuk mendeteksi perbedaan antara file foto dan embeddings."""
-    
     # Path ke file embeddings dan direktori database
     pickle_path = 'face_embeddings.pkl'  # File berada di root direktori
     metadata_path = 'face_embeddings_metadata.pkl'  # File berada di root direktori
@@ -189,11 +188,10 @@ def audit_face_database():
         'persons': persons_data
     }
 
-# Tambahkan route untuk halaman audit database
+# Route untuk halaman audit database
 @admin_bp.route('/audit')
 @admin_required
 def admin_audit():
-    """Halaman untuk mengaudit database wajah."""
     # Jalankan audit
     audit_result = audit_face_database()
     
@@ -207,15 +205,14 @@ def admin_audit():
         audit_result=audit_result
     )
 
-# Modifikasi admin_panel untuk menambahkan link ke halaman audit
+# Halaman utama panel admin
 @admin_bp.route('/')
 @admin_required
 def admin_panel():
-    """Admin panel main page."""
-    # Get database statistics
+    # Mendapatkan statistik database
     db_stats = get_database_stats()
     
-    # Get list of people in the database
+    # Mendapatkan daftar orang dalam database
     people_list = get_people_list()
     
     message = session.pop('admin_message', None)
@@ -229,11 +226,11 @@ def admin_panel():
         message_type=message_type
     )
 
+# Fungsi untuk mendapatkan statistik tentang database wajah
 def get_database_stats():
-    """Get statistics about the face database."""
     db_folder = current_app.config['DATABASE_FOLDER']
     
-    # Count people (folders in database)
+    # Hitung orang (folder dalam database)
     total_people = 0
     total_images = 0
     
@@ -243,12 +240,12 @@ def get_database_stats():
             if os.path.isdir(person_path) and person_folder != 'embeddings':
                 total_people += 1
                 
-                # Count images for this person
+                # Hitung gambar untuk orang ini
                 for file in os.listdir(person_path):
                     if file.lower().endswith(('.jpg', '.jpeg', '.png')):
                         total_images += 1
     
-    # Get last updated time from embeddings file if it exists
+    # Mendapatkan waktu terakhir diperbarui dari file embeddings jika ada
     last_updated = "Never"
     embeddings_path = 'face_embeddings.pkl'
     if os.path.exists(embeddings_path):
@@ -261,8 +258,8 @@ def get_database_stats():
         'last_updated': last_updated
     }
 
+# Fungsi untuk mendapatkan daftar orang dalam database
 def get_people_list():
-    """Get list of people in the database."""
     db_folder = current_app.config['DATABASE_FOLDER']
     people = []
     
@@ -270,34 +267,34 @@ def get_people_list():
         for person_name in os.listdir(db_folder):
             person_path = os.path.join(db_folder, person_name)
             if os.path.isdir(person_path) and person_name != 'embeddings':
-                # Count images
+                # Hitung gambar
                 image_count = len([
                     f for f in os.listdir(person_path)
                     if f.lower().endswith(('.jpg', '.jpeg', '.png'))
                 ])
                 
                 people.append({
-                    'id': person_name,  # Use folder name as ID
+                    'id': person_name,  # Menggunakan nama folder sebagai ID
                     'name': person_name,
                     'image_count': image_count
                 })
     
-    # Sort by name
+    # Urutkan berdasarkan nama
     people.sort(key=lambda x: x['name'])
     return people
 
+# Route untuk memperbarui embeddings wajah dari database
 @admin_bp.route('/update_embeddings', methods=['POST'])
 @admin_required
 def admin_update_embeddings():
-    """Rebuild face embeddings from the database."""
     try:
-        # Use fixed confidence threshold of 0.6
+        # Menggunakan ambang batas kepercayaan tetap 0.6
         confidence_threshold = 0.6
             
-        # Import face embedding update function from the correct location
+        # Import fungsi update embeddings wajah dari lokasi yang benar
         from embedding_manager_utils.update_face_embeddings import update_face_embeddings
         
-        # Call the update function with database path and other parameters
+        # Memanggil fungsi update dengan path database dan parameter lainnya
         result = update_face_embeddings(
             database_dir=current_app.config['DATABASE_FOLDER'],
             output_path="face_embeddings.pkl",
@@ -305,7 +302,7 @@ def admin_update_embeddings():
             confidence_threshold=confidence_threshold
         )
         
-        # Create success message with statistics
+        # Membuat pesan sukses dengan statistik
         message = (
             f"Face embeddings telah diupdate! "
             f"Telah diproses {result['total_persons']} orang, "
@@ -321,10 +318,10 @@ def admin_update_embeddings():
     
     return redirect(url_for('admin.admin_panel'))
 
+# Route untuk menambahkan orang baru ke database wajah
 @admin_bp.route('/add_person', methods=['POST'])
 @admin_required
 def admin_add_person():
-    """Add a new person to the face database."""
     if 'person_images' not in request.files:
         session['admin_message'] = 'No file uploaded'
         session['admin_message_type'] = 'danger'
@@ -349,20 +346,20 @@ def admin_add_person():
         return redirect(url_for('admin.admin_panel'))
     
     try:
-        # Prepare folders
+        # Persiapkan folder
         temp_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'temp_person')
         if os.path.exists(temp_folder):
             shutil.rmtree(temp_folder)
         os.makedirs(temp_folder, exist_ok=True)
         
-        # Save and extract ZIP
+        # Simpan dan ekstrak ZIP
         zip_path = os.path.join(temp_folder, file.filename)
         file.save(zip_path)
         
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(temp_folder)
         
-        # Find images in extracted zip
+        # Cari gambar dalam zip yang telah diekstrak
         image_files = []
         for root, _, files in os.walk(temp_folder):
             for filename in files:
@@ -375,28 +372,28 @@ def admin_add_person():
             shutil.rmtree(temp_folder)
             return redirect(url_for('admin.admin_panel'))
         
-        # Create person folder
+        # Buat folder orang
         person_folder = os.path.join(current_app.config['DATABASE_FOLDER'], person_name)
         if os.path.exists(person_folder):
-            # Append timestamp if folder already exists
+            # Tambahkan timestamp jika folder sudah ada
             person_name = f"{person_name}_{int(time.time())}"
             person_folder = os.path.join(current_app.config['DATABASE_FOLDER'], person_name)
         
         os.makedirs(person_folder, exist_ok=True)
         
-        # Copy images to person folder
+        # Salin gambar ke folder orang
         for img_path in image_files:
             img_filename = os.path.basename(img_path)
             target_path = os.path.join(person_folder, img_filename)
             
-            # Ensure unique filename
+            # Pastikan nama file unik
             if os.path.exists(target_path):
                 base_name, ext = os.path.splitext(img_filename)
                 target_path = os.path.join(person_folder, f"{base_name}_{int(time.time())}_{random.randint(1000, 9999)}{ext}")
             
             shutil.copy2(img_path, target_path)
         
-        # Clean up temp folder
+        # Bersihkan folder temp
         shutil.rmtree(temp_folder)
         
         # AUTO-UPDATE EMBEDDINGS
@@ -412,12 +409,10 @@ def admin_add_person():
     
     return redirect(url_for('admin.admin_panel'))
 
-# Additional routes and functions for person view and image management
-
+# Route untuk melihat gambar untuk orang tertentu
 @admin_bp.route('/view_person/<person_id>')
 @admin_required
 def admin_view_person(person_id):
-    """View images for a specific person."""
     person_folder = os.path.join(current_app.config['DATABASE_FOLDER'], person_id)
     
     if not os.path.exists(person_folder):
@@ -425,7 +420,7 @@ def admin_view_person(person_id):
         session['admin_message_type'] = 'danger'
         return redirect(url_for('admin.admin_panel'))
     
-    # Get all image files
+    # Mendapatkan semua file gambar
     image_files = []
     for filename in os.listdir(person_folder):
         if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
@@ -434,7 +429,7 @@ def admin_view_person(person_id):
                 'url': url_for('admin.admin_serve_image', person_id=person_id, filename=filename)
             })
     
-    # Get message from session if exists
+    # Mendapatkan pesan dari session jika ada
     message = session.pop('admin_message', None)
     message_type = session.pop('admin_message_type', 'info')
     
@@ -473,17 +468,17 @@ def admin_delete_image():
         return redirect(url_for('admin.admin_view_person', person_id=person_id))
     
     try:
-        # Delete the image file
+        # Hapus file gambar
         os.remove(image_path)
         
-        # Check if this was the last image
+        # Cek apakah gambar ini adalah gambar terakhir
         person_folder = os.path.join(current_app.config['DATABASE_FOLDER'], person_id)
         remaining_images = [f for f in os.listdir(person_folder) 
                           if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
         
         if not remaining_images:
             base_message = f'Deleted the last image for {person_id}. Consider removing this person.'
-            # Don't auto-update embeddings if no images remain
+            # Jangan auto update jika tidak ada gambar tersisa
             session['admin_message'] = base_message
             session['admin_message_type'] = 'warning'
         else:
@@ -517,7 +512,7 @@ def admin_delete_person():
         return redirect(url_for('admin.admin_panel'))
     
     try:
-        # Delete person folder
+        # Hapus folder orang
         shutil.rmtree(person_folder)
         
         # AUTO-UPDATE EMBEDDINGS
@@ -547,7 +542,7 @@ def admin_add_photos():
         session['admin_message_type'] = 'danger'
         return redirect(url_for('admin.admin_view_person', person_id=person_id))
     
-    # Get all files (multiple file upload)
+    # Dapat semua foto (multiple file upload)
     files = request.files.getlist('new_photos')
     
     if not files or files[0].filename == '':
@@ -555,7 +550,7 @@ def admin_add_photos():
         session['admin_message_type'] = 'danger'
         return redirect(url_for('admin.admin_view_person', person_id=person_id))
     
-    # Validate each file is an allowed image type
+    # Validasi tipe format gambar
     valid_extensions = ['.jpg', '.jpeg', '.png']
     for file in files:
         if not any(file.filename.lower().endswith(ext) for ext in valid_extensions):
@@ -563,7 +558,7 @@ def admin_add_photos():
             session['admin_message_type'] = 'danger'
             return redirect(url_for('admin.admin_view_person', person_id=person_id))
     
-    # Save files
+    # Simpan files
     person_folder = os.path.join(current_app.config['DATABASE_FOLDER'], person_id)
     
     if not os.path.exists(person_folder):
@@ -571,22 +566,22 @@ def admin_add_photos():
     
     files_saved = 0
     for file in files:
-        if file and file.filename.strip():  # Additional check to avoid empty filenames
+        if file and file.filename.strip():  # Cek tambahan untuk menghindari filename kosong
             try:
-                # Secure the filename
+                # Secure filename
                 filename = secure_filename(file.filename)
                 
-                # Ensure unique filename
+                # Memastikan filename unik
                 base_name, ext = os.path.splitext(filename)
                 final_filename = filename
                 counter = 1
                 
-                # If file exists, add a counter to make it unique
+                # Jika filename ada, tambah counter untuk membuatnya unik
                 while os.path.exists(os.path.join(person_folder, final_filename)):
                     final_filename = f"{base_name}_{counter}{ext}"
                     counter += 1
                 
-                # Save the file
+                # Simpan file
                 file.save(os.path.join(person_folder, final_filename))
                 files_saved += 1
                 
@@ -625,20 +620,20 @@ def admin_edit_person_name():
     old_folder_path = os.path.join(current_app.config['DATABASE_FOLDER'], person_id)
     new_folder_path = os.path.join(current_app.config['DATABASE_FOLDER'], new_name)
     
-    # Check if old folder exists
+    # Cek jika folder lama ada
     if not os.path.exists(old_folder_path):
         session['admin_message'] = f'Person {person_id} not found in database'
         session['admin_message_type'] = 'danger'
         return redirect(url_for('admin.admin_panel'))
     
-    # Check if new folder name already exists
+    # Cek jika folder baru sudah ada
     if os.path.exists(new_folder_path) and person_id != new_name:
         session['admin_message'] = f'A person with name {new_name} already exists in database'
         session['admin_message_type'] = 'danger'
         return redirect(url_for('admin.admin_panel'))
     
     try:
-        # If the name hasn't changed, don't do anything
+        # Jika nama tidak berubah, tidak lakukan apa-apa
         if person_id != new_name:
             # Rename folder
             os.rename(old_folder_path, new_folder_path)
@@ -664,16 +659,16 @@ def admin_reprocess_embeddings():
         # Get confidence threshold from form
         confidence_threshold = float(request.form.get('confidence_threshold', 0.5))
         
-        # Validate range
+        # Validasi rentang
         if not 0.3 <= confidence_threshold <= 0.7:
             session['admin_message'] = 'Error: Confidence threshold must be between 0.3 and 0.7'
             session['admin_message_type'] = 'danger'
             return redirect(url_for('admin.admin_panel'))
         
-        # Import the correct module
+        # Import modul
         from embedding_manager_utils.reprocess_face_embeddings import reprocess_problem_faces
         
-        # Call the reprocess function with confidence threshold
+        # Panggil reprocess dengan confidence threshold
         result = reprocess_problem_faces(
             database_dir=current_app.config['DATABASE_FOLDER'],
             embeddings_path="face_embeddings.pkl",
@@ -681,9 +676,9 @@ def admin_reprocess_embeddings():
             confidence_threshold=confidence_threshold
         )
         
-        # Check if operation was successful
+        # Cek jika operasi berhasil
         if result['status'] == 'success':
-            # Create success message with statistics
+            # Berikan message status dengan statistik
             message = (
                 f"Face embeddings telah diproses ulang! "
                 f"{result.get('total_problematic_files', 0)} total file foto bermasalah telah di proses ulang"

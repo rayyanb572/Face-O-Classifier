@@ -15,19 +15,7 @@ def reprocess_problem_faces(database_dir="database",
                            embeddings_path="face_embeddings.pkl",
                            metadata_path="face_embeddings_metadata.pkl",
                            confidence_threshold=0.6):
-    """
-    Memproses ulang gambar wajah bermasalah yang diidentifikasi oleh audit.
-    Hanya memperbarui gambar dengan masalah deteksi dan mempertahankan yang lainnya.
-    
-    Args:
-        database_dir: Direktori yang berisi subdirektori wajah orang
-        embeddings_path: Path ke file pickle embeddings wajah
-        metadata_path: Path ke file pickle metadata wajah
-        confidence_threshold: Batas kepercayaan untuk deteksi wajah YOLO (0.3-0.7)
-        
-    Returns:
-        dict: Statistik pemrosesan (total gambar bermasalah, sukses, error, dll.)
-    """
+
     print("\n" + "=" * 60)
     print(f"MEMPROSES ULANG WAJAH BERMASALAH (Batas Kepercayaan: {confidence_threshold})")
     print("=" * 60)

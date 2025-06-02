@@ -6,16 +6,7 @@ from collections import defaultdict
 def audit_face_database(pickle_path="face_embeddings.pkl", 
                        metadata_path="face_embeddings_metadata.pkl", 
                        database_dir="database"):
-    """
-    Melakukan audit terhadap database embeddings wajah dan membandingkannya dengan
-    file yang ada di folder database. Menggunakan metadata untuk menganalisis file
-    dengan lebih dari satu embedding atau file tanpa embedding.
     
-    Args:
-        pickle_path: Path ke file pickle embeddings
-        metadata_path: Path ke file pickle metadata
-        database_dir: Path ke direktori database foto wajah
-    """
     print("\n" + "=" * 60)
     print("AUDIT DATABASE FACE EMBEDDINGS")
     print("=" * 60)
@@ -221,7 +212,7 @@ def audit_face_database(pickle_path="face_embeddings.pkl",
 
     print("\n" + "=" * 60)
 
-# Jalankan fungsi jika file ini dieksekusi langsung
+# Jalankan fungsi jika dieksekusi langsung
 if __name__ == "__main__":
     PICKLE_PATH = "face_embeddings.pkl"
     METADATA_PATH = "face_embeddings_metadata.pkl"
