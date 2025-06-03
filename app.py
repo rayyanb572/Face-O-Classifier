@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import glob
+import threading
 import time
 import zipfile
 import json
@@ -16,12 +17,53 @@ from classify_faces import classify_faces
 from admin import admin_bp
 import config
 
+# --- Global Variables for Background Processing ---
+background_processes = {}  # Store background process status
+
 # --- Utility Function ---
 def clear_folder(folder_path):
     """Menghapus folder lama dan membuat folder kosong baru."""
     if os.path.exists(folder_path):
         shutil.rmtree(folder_path)
     os.makedirs(folder_path, exist_ok=True)
+
+# --- Background Processing Function ---
+def background_classify_faces(session_id, extracted_folder_path, output_folder_name):
+    """Menjalankan klasifikasi wajah di background thread"""
+    try:
+        # Update status
+        background_processes[session_id] = {
+            'status': 'processing',
+            'message': 'Processing...',
+            'progress': 0,
+            'start_time': time.time()
+        }
+        
+        # Jalankan klasifikasi
+        output_folder, output_zip_path, processing_time = classify_faces(
+            extracted_folder_path, 
+            output_folder=output_folder_name
+        )
+        
+        # Update status selesai
+        background_processes[session_id] = {
+            'status': 'complete',
+            'message': 'Classification completed successfully',
+            'progress': 100,
+            'output_folder': output_folder,
+            'zip_path': output_zip_path,
+            'processing_time': processing_time,
+            'completed_at': time.time()
+        }
+        
+    except Exception as e:
+        # Update status error
+        background_processes[session_id] = {
+            'status': 'error',
+            'message': f'Error during classification: {str(e)}',
+            'progress': 0,
+            'error': str(e)
+        }
 
 # --- Membersihkan file dan folder saat aplikasi mulai ---
 # Membersihkan file session
@@ -60,6 +102,22 @@ app.register_blueprint(admin_bp, url_prefix='/admin')
 @app.route('/')
 def index():
     """Menampilkan halaman utama."""
+    session_id = session.get('device_session_id')
+    
+    # Cek status background process
+    if session_id and session_id in background_processes:
+        process_status = background_processes[session_id]
+        
+        if process_status['status'] == 'complete':
+            # Pindahkan hasil ke session
+            session['output_path'] = process_status.get('output_folder')
+            session['zip_path'] = process_status.get('zip_path')
+            session['processing_time'] = process_status.get('processing_time')
+            session['upload_complete'] = True
+            
+            # Hapus dari background processes
+            del background_processes[session_id]
+    
     output_path = session.get('output_path')
     output_folder_empty = True
 
@@ -72,55 +130,27 @@ def index():
         original_folder_name=session.get('original_folder_name'),
         is_output_folder_empty=output_folder_empty,
         zip_available=session.get('zip_path') is not None,
-        processing_time=session.get('processing_time')  # Add processing time to template
+        processing_time=session.get('processing_time')
     )
-
-processing_status = {}
 
 @app.route('/processing_status', methods=['GET'])
 def check_processing_status():
-    """Endpoint untuk memeriksa status pemrosesan"""
-    status = "processing"
+    """Endpoint untuk memeriksa status pemrosesan background"""
+    session_id = session.get('device_session_id')
     
-    # Check if processing is complete based on output_path in session
-    if session.get('upload_complete'):
-        status = "complete"
+    if not session_id:
+        return jsonify({"status": "unknown", "message": "No session found"})
     
-    return jsonify({"status": status})
-
-@app.route('/status', methods=['GET'])
-def check_status():
-    """Endpoint untuk memeriksa status pemrosesan"""
-    session_id = request.args.get('session_id')
-    if not session_id or session_id not in processing_status:
-        return jsonify({
-            'status': 'unknown',
-            'message': 'No processing information available',
-            'progress': 0
-        })
-    
-    return jsonify(processing_status[session_id])
-
-# Fungsi helper untuk mengupdate status pemrosesan
-def update_processing_status(session_id, status, message, progress):
-    """
-    Update status pemrosesan global
-    
-    Args:
-        session_id: ID sesi unik
-        status: Status pemrosesan (preparing, extracting, processing, complete, error)
-        message: Pesan detail untuk ditampilkan ke pengguna
-        progress: Persentase kemajuan (0-100)
-    """
-    processing_status[session_id] = {
-        'status': status,
-        'message': message,
-        'progress': progress
-    }
+    if session_id in background_processes:
+        return jsonify(background_processes[session_id])
+    elif session.get('upload_complete'):
+        return jsonify({"status": "complete"})
+    else:
+        return jsonify({"status": "unknown", "message": "No processing information available"})
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    """Menerima upload file ZIP, mengekstrak, dan memulai proses klasifikasi wajah."""
+    """Menerima upload file ZIP, mengekstrak, dan memulai proses klasifikasi wajah di background."""
     if 'zipfile' not in request.files:
         return redirect(request.url)
     file = request.files['zipfile']
@@ -210,25 +240,23 @@ def upload_file():
         shutil.rmtree(device_upload_folder)   # Hapus folder device juga
         return "Tidak ada file gambar yang ditemukan dalam ZIP", 400
     
-    # Simpan info di sesi
     session['original_folder_name'] = extracted_folder_name
     session['folder_name'] = extracted_folder_name
     session['device_folder_path'] = device_upload_folder
     session['extracted_folder_path'] = extracted_folder_path
     
-    # Mulai klasifikasi wajah
-    # Ubah: Hapus session ID dari nama folder output
+    # Mulai klasifikasi wajah di background
     output_folder_name = "(Classified) " + extracted_folder_name
     
-    # Capture the processing time from classify_faces function
-    output_folder, output_zip_path, processing_time = classify_faces(extracted_folder_path, output_folder=output_folder_name)
+    # Jalankan background thread
+    thread = threading.Thread(
+        target=background_classify_faces,
+        args=(device_session_id, extracted_folder_path, output_folder_name)
+    )
+    thread.daemon = True
+    thread.start()
     
-    # Store all results in session
-    session['output_path'] = output_folder
-    session['zip_path'] = output_zip_path
-    session['processing_time'] = processing_time  # Store processing time in session
-    session['upload_complete'] = True
-    
+    # Langsung redirect tanpa menunggu hasil
     return redirect(url_for('index'))
 
 @app.route('/cancel', methods=['POST'])
@@ -236,7 +264,17 @@ def cancel_processing():
     """Endpoint untuk membatalkan proses klasifikasi yang sedang berjalan"""
     from classify_faces import cancel_processing
     
+    session_id = session.get('device_session_id')
+    
     if cancel_processing():
+        # Update status background process jika ada
+        if session_id and session_id in background_processes:
+            background_processes[session_id] = {
+                'status': 'cancelled',
+                'message': 'Processing cancelled by user',
+                'progress': 0
+            }
+        
         return jsonify({'status': 'success', 'message': 'Processing cancelled'})
     return jsonify({'status': 'error', 'message': 'Failed to cancel processing'})
 

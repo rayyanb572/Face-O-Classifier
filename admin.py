@@ -8,12 +8,123 @@ import random
 from datetime import datetime
 from collections import defaultdict
 from functools import wraps
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, send_from_directory, current_app
+import threading
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, send_from_directory, current_app, jsonify
 from werkzeug.utils import secure_filename
 import config
 
 # Membuat Blueprint untuk admin
 admin_bp = Blueprint('admin', __name__, template_folder='templates')
+
+# --- Global Variables for Background Processing ---
+admin_background_processes = {}  # Store background process status
+
+# --- Fungsi Background Processing ---
+def background_update_embeddings(process_id, database_dir):
+    """Menjalankan update embeddings di background thread"""
+    try:
+        # Update status
+        admin_background_processes[process_id] = {
+            'status': 'processing',
+            'message': 'Updating face embeddings...',
+            'progress': 0,
+            'start_time': time.time(),
+            'type': 'update_embeddings'
+        }
+        
+        # Import fungsi update embeddings wajah
+        from embedding_manager_utils.update_face_embeddings import update_face_embeddings
+        
+        # Jalankan update embeddings
+        result = update_face_embeddings(
+            database_dir=database_dir,
+            output_path="face_embeddings.pkl",
+            metadata_path="face_embeddings_metadata.pkl",
+            confidence_threshold=0.6
+        )
+        
+        # Update status selesai
+        message = (
+            f"Face embeddings telah diupdate! "
+            f"Telah diproses {result['total_persons']} orang, "
+            f"{result['new_embeddings']} data wajah baru, "
+            f"{result['removed_embeddings']} data wajah yang dihapus"
+        )
+        
+        admin_background_processes[process_id] = {
+            'status': 'complete',
+            'message': message,
+            'progress': 100,
+            'result': result,
+            'completed_at': time.time(),
+            'type': 'update_embeddings'
+        }
+        
+    except Exception as e:
+        # Update status error
+        admin_background_processes[process_id] = {
+            'status': 'error',
+            'message': f'Error updating embeddings: {str(e)}',
+            'progress': 0,
+            'error': str(e),
+            'type': 'update_embeddings'
+        }
+
+def background_reprocess_embeddings(process_id, database_dir, confidence_threshold):
+    """Menjalankan reprocess embeddings di background thread"""
+    try:
+        # Update status
+        admin_background_processes[process_id] = {
+            'status': 'processing',
+            'message': f'Memproses ulang gambar yang bermasalah dengan threshold {confidence_threshold}...',
+            'progress': 0,
+            'start_time': time.time(),
+            'type': 'reprocess_embeddings'
+        }
+        
+        # Import modul
+        from embedding_manager_utils.reprocess_face_embeddings import reprocess_problem_faces
+        
+        # Panggil reprocess dengan confidence threshold
+        result = reprocess_problem_faces(
+            database_dir=database_dir,
+            embeddings_path="face_embeddings.pkl",
+            metadata_path="face_embeddings_metadata.pkl",
+            confidence_threshold=confidence_threshold
+        )
+        
+        # Update status selesai
+        if result['status'] == 'success':
+            message = (
+                f"Face embeddings telah diproses ulang! "
+                f"{result.get('total_problematic_files', 0)} total file foto bermasalah telah di proses ulang"
+            )
+            admin_background_processes[process_id] = {
+                'status': 'complete',
+                'message': message,
+                'progress': 100,
+                'result': result,
+                'completed_at': time.time(),
+                'type': 'reprocess_embeddings'
+            }
+        else:
+            admin_background_processes[process_id] = {
+                'status': 'error',
+                'message': f"Error: {result.get('message', 'Unknown error')}",
+                'progress': 0,
+                'error': result.get('message', 'Unknown error'),
+                'type': 'reprocess_embeddings'
+            }
+        
+    except Exception as e:
+        # Update status error
+        admin_background_processes[process_id] = {
+            'status': 'error',
+            'message': f'Error reprocessing embeddings: {str(e)}',
+            'progress': 0,
+            'error': str(e),
+            'type': 'reprocess_embeddings'
+        }
 
 # --- Fungsi Helper ---
 
@@ -284,36 +395,36 @@ def get_people_list():
     return people
 
 # Route untuk memperbarui embeddings wajah dari database
+# Route untuk memperbarui embeddings wajah dari database (REPLACE EXISTING ROUTE)
 @admin_bp.route('/update_embeddings', methods=['POST'])
 @admin_required
 def admin_update_embeddings():
+    # Cek apakah ada proses yang sedang berjalan
+    existing_process_id = session.get('admin_process_id')
+    if existing_process_id and existing_process_id in admin_background_processes:
+        session['admin_message'] = 'Ada proses yang sedang berjalan. Mohon tunggu hingga selesai.'
+        session['admin_message_type'] = 'warning'
+        return redirect(url_for('admin.admin_panel'))
+    
     try:
-        # Menggunakan ambang batas kepercayaan tetap 0.6
-        confidence_threshold = 0.6
-            
-        # Import fungsi update embeddings wajah dari lokasi yang benar
-        from embedding_manager_utils.update_face_embeddings import update_face_embeddings
+        # Buat process ID unik
+        process_id = f"update_{int(time.time())}_{random.randint(1000, 9999)}"
+        session['admin_process_id'] = process_id
         
-        # Memanggil fungsi update dengan path database dan parameter lainnya
-        result = update_face_embeddings(
-            database_dir=current_app.config['DATABASE_FOLDER'],
-            output_path="face_embeddings.pkl",
-            metadata_path="face_embeddings_metadata.pkl",
-            confidence_threshold=confidence_threshold
+        # Jalankan background thread
+        thread = threading.Thread(
+            target=background_update_embeddings,
+            args=(process_id, current_app.config['DATABASE_FOLDER'])
         )
+        thread.daemon = True
+        thread.start()
         
-        # Membuat pesan sukses dengan statistik
-        message = (
-            f"Face embeddings telah diupdate! "
-            f"Telah diproses {result['total_persons']} orang, "
-            f"{result['new_embeddings']} data wajah baru, "
-            f"{result['removed_embeddings']} data wajah yang dihapus"
-        )
+        # Set pesan bahwa proses dimulai
+        session['admin_message'] = 'Proses update embeddings dimulai. Halaman akan otomatis refresh saat selesai.'
+        session['admin_message_type'] = 'info'
         
-        session['admin_message'] = message
-        session['admin_message_type'] = 'success'
     except Exception as e:
-        session['admin_message'] = f'Error rebuilding embeddings: {str(e)}'
+        session['admin_message'] = f'Error starting update process: {str(e)}'
         session['admin_message_type'] = 'danger'
     
     return redirect(url_for('admin.admin_panel'))
@@ -654,7 +765,13 @@ def admin_edit_person_name():
 @admin_bp.route('/reprocess_embeddings', methods=['POST'])
 @admin_required
 def admin_reprocess_embeddings():
-    """Reprocess face embeddings with specific confidence threshold to improve detection on problematic images."""
+    # Cek apakah ada proses yang sedang berjalan
+    existing_process_id = session.get('admin_process_id')
+    if existing_process_id and existing_process_id in admin_background_processes:
+        session['admin_message'] = 'Ada proses yang sedang berjalan. Mohon tunggu hingga selesai.'
+        session['admin_message_type'] = 'warning'
+        return redirect(url_for('admin.admin_panel'))
+    
     try:
         # Get confidence threshold from form
         confidence_threshold = float(request.form.get('confidence_threshold', 0.5))
@@ -665,33 +782,55 @@ def admin_reprocess_embeddings():
             session['admin_message_type'] = 'danger'
             return redirect(url_for('admin.admin_panel'))
         
-        # Import modul
-        from embedding_manager_utils.reprocess_face_embeddings import reprocess_problem_faces
+        # Buat process ID unik
+        process_id = f"reprocess_{int(time.time())}_{random.randint(1000, 9999)}"
+        session['admin_process_id'] = process_id
         
-        # Panggil reprocess dengan confidence threshold
-        result = reprocess_problem_faces(
-            database_dir=current_app.config['DATABASE_FOLDER'],
-            embeddings_path="face_embeddings.pkl",
-            metadata_path="face_embeddings_metadata.pkl",
-            confidence_threshold=confidence_threshold
+        # Jalankan background thread
+        thread = threading.Thread(
+            target=background_reprocess_embeddings,
+            args=(process_id, current_app.config['DATABASE_FOLDER'], confidence_threshold)
         )
+        thread.daemon = True
+        thread.start()
         
-        # Cek jika operasi berhasil
-        if result['status'] == 'success':
-            # Berikan message status dengan statistik
-            message = (
-                f"Face embeddings telah diproses ulang! "
-                f"{result.get('total_problematic_files', 0)} total file foto bermasalah telah di proses ulang"
-            )
-            session['admin_message'] = message
-            session['admin_message_type'] = 'success'
-        else:
-            # Handle error case
-            session['admin_message'] = f"Error: {result.get('message', 'Unknown error')}"
-            session['admin_message_type'] = 'danger'
-            
+        # Set pesan bahwa proses dimulai
+        session['admin_message'] = f'Memproses ulang gambar bermasalah dengan threshold {confidence_threshold}... '
+        session['admin_message_type'] = 'info'
+        
     except Exception as e:
-        session['admin_message'] = f'Error reprocessing embeddings: {str(e)}'
+        session['admin_message'] = f'Error starting reprocess: {str(e)}'
         session['admin_message_type'] = 'danger'
     
     return redirect(url_for('admin.admin_panel'))
+
+# Route untuk memeriksa status background process
+@admin_bp.route('/processing_status', methods=['GET'])
+@admin_required
+def admin_processing_status():
+    """Endpoint untuk memeriksa status pemrosesan background admin"""
+    process_id = session.get('admin_process_id')
+    
+    if not process_id:
+        return jsonify({"status": "unknown", "message": "No process found"})
+    
+    if process_id in admin_background_processes:
+        process_info = admin_background_processes[process_id]
+        
+        # Jika selesai, pindahkan ke session dan hapus dari background processes
+        if process_info['status'] == 'complete':
+            session['admin_message'] = process_info['message']
+            session['admin_message_type'] = 'success'
+            del admin_background_processes[process_id]
+            session.pop('admin_process_id', None)
+            return jsonify({"status": "complete", "redirect": True})
+        elif process_info['status'] == 'error':
+            session['admin_message'] = process_info['message']
+            session['admin_message_type'] = 'danger'
+            del admin_background_processes[process_id]
+            session.pop('admin_process_id', None)
+            return jsonify({"status": "error", "redirect": True})
+        
+        return jsonify(process_info)
+    else:
+        return jsonify({"status": "unknown", "message": "No processing information available"})

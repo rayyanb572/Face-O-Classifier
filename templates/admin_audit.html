@@ -245,13 +245,13 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title text-white" id="processingModalLabel">Processing</h5>
+                    <h5 class="modal-title" id="processingModalLabel">Processing</h5>
                 </div>
                 <div class="modal-body text-center p-4">
                     <div class="spinner-border text-primary mb-3" role="status">
                         <span class="visually-hidden">Processing...</span>
                     </div>
-                    <p id="processingMessage">Memproses ulang embedding wajah bermasalah. Harap tunggu...</p>
+                    <p id="processingMessage">Memproses ulang foto dengan embedding wajah bermasalah...</p>
                 </div>
             </div>
         </div>
@@ -260,35 +260,132 @@
     <!-- Bootstrap JS & Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Script untuk update nilai slider -->
+    <!-- Script untuk update nilai slider dan background processing -->
     <script>
+        let processingInterval = null;
+        let processingModal = null;
+        let reprocessModal = null;
+
         function updateConfidence(val) {
             document.getElementById('confidenceValue').textContent = val;
+        }
+
+        function checkProcessingStatus() {
+            fetch('{{ url_for("admin.admin_processing_status") }}')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Processing status:', data);
+
+                    if (data.status === 'processing') {
+                        // Update pesan
+                        const messageEl = document.getElementById('processingMessage');
+                        if (messageEl && data.message) {
+                            messageEl.textContent = data.message;
+                        }
+                    } else if (data.status === 'complete' || data.status === 'error') {
+                        // Proses selesai
+                        clearInterval(processingInterval);
+                        processingInterval = null;
+                        
+                        if (processingModal) {
+                            processingModal.hide();
+                        }
+
+                        if (data.redirect) {
+                            // Redirect ke admin panel untuk melihat hasil
+                            setTimeout(() => {
+                                window.location.href = '{{ url_for("admin.admin_panel") }}';
+                            }, 500);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking status:', error);
+                });
+        }
+
+        function startProcessingMonitor() {
+            if (processingInterval) {
+                clearInterval(processingInterval);
+            }
+            
+            processingInterval = setInterval(checkProcessingStatus, 2000); // Check every 2 seconds
+            
+            // Check immediately
+            checkProcessingStatus();
+        }
+
+        function submitReprocessForm() {
+            const form = document.getElementById('reprocessForm');
+            const formData = new FormData(form);
+            
+            // Hide reprocess modal
+            if (reprocessModal) {
+                reprocessModal.hide();
+            }
+            
+            // Show processing modal immediately
+            setTimeout(() => {
+                document.getElementById('processingMessage').textContent = 'Memulai proses reprocess embeddings...';
+                processingModal.show();
+                
+                // Submit form via fetch
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(() => {
+                    // Start monitoring after successful submission
+                    startProcessingMonitor();
+                })
+                .catch(error => {
+                    console.error('Error submitting form:', error);
+                    processingModal.hide();
+                    alert('Error starting reprocess. Please try again.');
+                });
+            }, 300);
         }
 
         // Show processing modal when form is submitted
         document.addEventListener("DOMContentLoaded", function() {
             const reprocessForm = document.getElementById('reprocessForm');
-            const reprocessModal = document.getElementById('reprocessModal');
+            processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
+            reprocessModal = new bootstrap.Modal(document.getElementById('reprocessModal'));
             
             if (reprocessForm) {
                 reprocessForm.addEventListener('submit', function(event) {
-                    // Check if form is valid before showing processing modal
+                    event.preventDefault(); // Prevent default form submission
+                    
+                    // Check if form is valid
                     if (reprocessForm.checkValidity()) {
-                        // Hide reprocess modal first to prevent modal overlap
-                        const bsReprocessModal = bootstrap.Modal.getInstance(reprocessModal);
-                        if (bsReprocessModal) {
-                            bsReprocessModal.hide();
-                        }
-                        
-                        // Wait for reprocess modal to fully hide before showing processing modal
-                        setTimeout(function() {
-                            const processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
-                            processingModal.show();
-                            document.getElementById('processingMessage').textContent = 'Memproses ulang embedding wajah pada file foto yang bermasalah. Mohon tunggu beberapa saat...';
-                        }, 300); // Short delay to ensure smooth transition
+                        submitReprocessForm();
+                    } else {
+                        // Show validation errors
+                        reprocessForm.reportValidity();
                     }
                 });
+            }
+
+            // Check jika ada proses yang sedang berjalan saat halaman dimuat
+            fetch('{{ url_for("admin.admin_processing_status") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'processing') {
+                        // Ada proses yang sedang berjalan, show modal
+                        document.getElementById('processingMessage').textContent = data.message || 'Memproses...';
+                        processingModal.show();
+                        startProcessingMonitor();
+                    }
+                })
+                .catch(error => {
+                    console.log('No active process found');
+                });
+        });
+
+        // Cleanup interval when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            if (processingInterval) {
+                clearInterval(processingInterval);
             }
         });
     </script>
