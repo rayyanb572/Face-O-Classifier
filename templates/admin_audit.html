@@ -8,15 +8,15 @@
     <!-- Google Fonts - Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Meta tags -->
+    <!-- Meta Tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face'O'Classifier - Database Audit</title>
 
-    <!-- Icon Bootstrap -->
+    <!-- Ikon Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- CSS Custom -->
+    <!-- CSS Kustom -->
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 
@@ -25,15 +25,14 @@
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <div class="card shadow-sm">
-                    <div
-                        class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
                         <h1 class="h3 mb-0">Database Audit</h1>
                         <div>
                             <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-sm btn-light me-2">
-                                <i class="bi bi-arrow-left me-1"></i>Back
+                                <i class="bi bi-arrow-left me-1"></i>Kembali
                             </a>
                             <a href="{{ url_for('index') }}" class="btn btn-sm btn-light">
-                                <i class="bi bi-house-fill me-1"></i>Home
+                                <i class="bi bi-house-fill me-1"></i>Beranda
                             </a>
                         </div>
                     </div>
@@ -44,7 +43,7 @@
                             Audit database wajah untuk menemukan inkonsistensi antara jumlah file foto dan embeddings.
                         </div>
 
-                        <!-- Summary Statistics -->
+                        <!-- Ringkasan Statistik -->
                         <div class="card mb-4">
                             <div class="card-header bg-light">
                                 <h5 class="mb-0">Ringkasan Audit</h5>
@@ -81,7 +80,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Analysis -->
+                                <!-- Analisis -->
                                 <div class="mt-4">
                                     {% if audit_result.summary.difference == 0 %}
                                     <div class="alert alert-success">
@@ -109,19 +108,19 @@
                                     </div>
                                     {% endif %}
 
-
                                     <div class="mt-3">
                                         <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                                             data-bs-target="#reprocessModal">
                                             <i class="bi bi-arrow-repeat me-2"></i>Reprocess Embeddings
                                         </button>
-                                        <!-- Modal untuk Reprocess Embeddings -->
+                                        
+                                        <!-- Modal untuk Pemrosesan Ulang Embeddings -->
                                         <div class="modal fade" id="reprocessModal" tabindex="-1"
                                             aria-labelledby="reprocessModalLabel" aria-hidden="true">
                                             <div class="modal-dialog">
                                                 <div class="modal-content">
                                                     <div class="modal-header bg-primary text-white">
-                                                        <h5 class="modal-title text-white" id="reprocessModalLabel">Reprocess
+                                                        <h5 class="modal-title text-white" id="reprocessModalLabel">Pemrosesan Ulang
                                                             Embeddings</h5>
                                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                                                             aria-label="Close"></button>
@@ -131,8 +130,7 @@
                                                         <div class="modal-body">
                                                             <p>
                                                                 Atur nilai minimum confidence score untuk memproses
-                                                                ulang foto
-                                                                wajah yang bermasalah.
+                                                                ulang foto wajah yang bermasalah.
                                                                 Semakin rendah nilai, semakin toleran terhadap wajah yang 
                                                                 kurang jelas.
                                                             </p>
@@ -173,7 +171,7 @@
                                 </div>
                             </div>
 
-                            <!-- Detail Data -->
+                            <!-- Detail Data Per Orang -->
                             <div class="card">
                                 <div class="card-header bg-light">
                                     <h5 class="mb-0">Detail Per Orang</h5>
@@ -208,7 +206,7 @@
                                                         {% if person.status == 'ok' %}
                                                         <span class="badge bg-success">OK</span>
                                                         {% else %}
-                                                        <span class="badge bg-warning text-dark">Warning</span>
+                                                        <span class="badge bg-warning text-dark">Peringatan</span>
                                                         {% endif %}
                                                     </td>
                                                     <td>
@@ -239,17 +237,17 @@
         </div>
     </div>
 
-    <!-- Processing Modal -->
+    <!-- Modal Pemrosesan -->
     <div class="modal fade" id="processingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labelledby="processingModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="processingModalLabel">Processing</h5>
+                    <h5 class="modal-title" id="processingModalLabel">Sedang Memproses</h5>
                 </div>
                 <div class="modal-body text-center p-4">
                     <div class="spinner-border text-primary mb-3" role="status">
-                        <span class="visually-hidden">Processing...</span>
+                        <span class="visually-hidden">Sedang Memproses...</span>
                     </div>
                     <p id="processingMessage">Memproses ulang foto dengan embedding wajah bermasalah...</p>
                 </div>
@@ -260,7 +258,7 @@
     <!-- Bootstrap JS & Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Script untuk update nilai slider dan background processing -->
+    <!-- Script untuk pembaruan nilai slider dan pemantauan proses background -->
     <script>
         let processingInterval = null;
         let processingModal = null;
@@ -274,10 +272,10 @@
             fetch('{{ url_for("admin.admin_processing_status") }}')
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Processing status:', data);
+                    console.log('Status pemrosesan:', data);
 
                     if (data.status === 'processing') {
-                        // Update pesan
+                        // Perbarui pesan
                         const messageEl = document.getElementById('processingMessage');
                         if (messageEl && data.message) {
                             messageEl.textContent = data.message;
@@ -292,7 +290,7 @@
                         }
 
                         if (data.redirect) {
-                            // Redirect ke admin panel untuk melihat hasil
+                            // Arahkan ke panel admin untuk melihat hasil
                             setTimeout(() => {
                                 window.location.href = '{{ url_for("admin.admin_panel") }}';
                             }, 500);
@@ -300,7 +298,7 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Error checking status:', error);
+                    console.error('Error saat memeriksa status:', error);
                 });
         }
 
@@ -309,9 +307,10 @@
                 clearInterval(processingInterval);
             }
             
-            processingInterval = setInterval(checkProcessingStatus, 2000); // Check every 2 seconds
+            // Periksa setiap 2 detik
+            processingInterval = setInterval(checkProcessingStatus, 2000);
             
-            // Check immediately
+            // Periksa segera
             checkProcessingStatus();
         }
 
@@ -319,34 +318,34 @@
             const form = document.getElementById('reprocessForm');
             const formData = new FormData(form);
             
-            // Hide reprocess modal
+            // Sembunyikan modal reprocess
             if (reprocessModal) {
                 reprocessModal.hide();
             }
             
-            // Show processing modal immediately
+            // Tampilkan modal proses segera
             setTimeout(() => {
                 document.getElementById('processingMessage').textContent = 'Memulai proses reprocess embeddings...';
                 processingModal.show();
                 
-                // Submit form via fetch
+                // Kirim form via fetch
                 fetch(form.action, {
                     method: 'POST',
                     body: formData
                 })
                 .then(() => {
-                    // Start monitoring after successful submission
+                    // Mulai pemantauan setelah pengiriman berhasil
                     startProcessingMonitor();
                 })
                 .catch(error => {
-                    console.error('Error submitting form:', error);
+                    console.error('Error saat mengirim form:', error);
                     processingModal.hide();
-                    alert('Error starting reprocess. Please try again.');
+                    alert('Error saat memulai reprocess. Silakan coba lagi.');
                 });
             }, 300);
         }
 
-        // Show processing modal when form is submitted
+        // Tampilkan modal proses saat form dikirim
         document.addEventListener("DOMContentLoaded", function() {
             const reprocessForm = document.getElementById('reprocessForm');
             processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
@@ -354,35 +353,35 @@
             
             if (reprocessForm) {
                 reprocessForm.addEventListener('submit', function(event) {
-                    event.preventDefault(); // Prevent default form submission
+                    event.preventDefault(); // Cegah pengiriman form default
                     
-                    // Check if form is valid
+                    // Periksa apakah form valid
                     if (reprocessForm.checkValidity()) {
                         submitReprocessForm();
                     } else {
-                        // Show validation errors
+                        // Tampilkan error validasi
                         reprocessForm.reportValidity();
                     }
                 });
             }
 
-            // Check jika ada proses yang sedang berjalan saat halaman dimuat
+            // Periksa jika ada proses yang sedang berjalan saat halaman dimuat
             fetch('{{ url_for("admin.admin_processing_status") }}')
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'processing') {
-                        // Ada proses yang sedang berjalan, show modal
-                        document.getElementById('processingMessage').textContent = data.message || 'Memproses...';
+                        // Ada proses yang sedang berjalan, tampilkan modal
+                        document.getElementById('processingMessage').textContent = data.message || 'Sedang memproses...';
                         processingModal.show();
                         startProcessingMonitor();
                     }
                 })
                 .catch(error => {
-                    console.log('No active process found');
+                    console.log('Tidak ada proses aktif ditemukan');
                 });
         });
 
-        // Cleanup interval when page is unloaded
+        // Bersihkan interval saat halaman ditutup
         window.addEventListener('beforeunload', function() {
             if (processingInterval) {
                 clearInterval(processingInterval);

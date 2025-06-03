@@ -134,12 +134,12 @@
         let currentImageFilename = '';
 
         document.addEventListener("DOMContentLoaded", function () {
-            // Initialize modals
+            // Inisialisasi modal
             processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
             imageModal = bootstrap.Modal.getInstance(document.getElementById('imageModal')) || 
                         new bootstrap.Modal(document.getElementById('imageModal'));
 
-            // Handle image modal
+            // Handle modal gambar
             const imageModalElement = document.getElementById('imageModal');
             if (imageModalElement) {
                 imageModalElement.addEventListener('show.bs.modal', function (event) {
