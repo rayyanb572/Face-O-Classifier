@@ -11,12 +11,19 @@
 
     <!-- CSS Custom -->
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    
     <!-- Meta -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview Gambar "{{ folder_name }}"</title>
+    
 </head>
 <body>
+    <!-- Preload indicator -->
+    <div id="preloadIndicator" class="preload-indicator">
+        <i class="bi bi-download"></i> Preloading...
+    </div>
+
     <!-- Header Navigation -->
     <nav class="navbar navbar-dark bg-primary fixed-top">
         <div class="container-fluid position-relative px-3">
@@ -26,23 +33,36 @@
             <span class="navbar-brand mb-0 w-100 text-center">{{ folder_name }}</span>
         </div>
     </nav>
+    
     <!-- Grid Gambar -->
     <div class="container mt-5 pt-4">
         <div class="row g-4">
             {% for image in images %}
             <div class="col-6 col-md-4 col-lg-3">
                 <div class="image-grid-item" data-index="{{ loop.index0 }}" onclick="showModal(this.dataset.index)">
-                    <img src="{{ image }}" alt="Processed Image" class="img-fluid rounded shadow-sm">
+                    <img 
+                        src="{{ image.thumbnail }}" 
+                        alt="Thumbnail {{ image.filename }}" 
+                        class="img-fluid rounded shadow-sm"
+                        data-full-src="{{ image.full }}">
                 </div>
             </div>
             {% endfor %}
         </div>
     </div>
+    
     <!-- Modal Preview Gambar -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content bg-transparent border-0">
                 <div class="modal-body text-center position-relative">
+                    <!-- Loading spinner -->
+                    <div id="modalLoading" class="modal-loading" style="display: none;">
+                        <div class="spinner-border text-light" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    
                     <button type="button" class="modal-back-btn" onclick="closeModal()">
                         <i class="bi bi-arrow-left"></i>
                     </button>
@@ -60,10 +80,11 @@
             </div>
         </div>
     </div>
+    
     <!-- Hidden data container -->
     <div id="imageData" style="display: none;">
         {% for image in images %}
-        <span class="image-url">{{ image }}</span>
+        <span class="image-url" data-full="{{ image.full }}" data-thumb="{{ image.thumbnail }}">{{ image.filename }}</span>
         {% endfor %}
     </div>
     
@@ -74,12 +95,95 @@
         let currentModal = null;
         let currentImageIndex = 0;
         let images = [];
+        let preloadedImages = new Map(); // Cache untuk gambar yang sudah di-preload
+        let preloadQueue = [];
+        let isPreloading = false;
         
         // Load images from hidden container
         document.addEventListener('DOMContentLoaded', function() {
             const imageElements = document.querySelectorAll('#imageData .image-url');
-            images = Array.from(imageElements).map(el => el.textContent);
+            images = Array.from(imageElements).map(el => ({
+                filename: el.textContent,
+                full: el.dataset.full,
+                thumbnail: el.dataset.thumb
+            }));
+            
+            // Mulai preloading gambar pertama
+            startBackgroundPreloading();
         });
+        
+        // Fungsi preloading gambar secara background
+        function startBackgroundPreloading() {
+            // Prioritas preload: gambar pertama, kedua, ketiga, dst
+            preloadQueue = images.map((_, index) => index);
+            preloadNextImage();
+        }
+        
+        function preloadNextImage() {
+            if (preloadQueue.length === 0 || isPreloading) return;
+            
+            isPreloading = true;
+            const index = preloadQueue.shift();
+            
+            if (preloadedImages.has(index)) {
+                isPreloading = false;
+                setTimeout(preloadNextImage, 10); // Lanjut ke gambar berikutnya
+                return;
+            }
+            
+            showPreloadIndicator();
+            
+            const img = new Image();
+            img.onload = function() {
+                preloadedImages.set(index, img);
+                hidePreloadIndicator();
+                isPreloading = false;
+                
+                // Lanjut preload gambar berikutnya dengan delay kecil
+                setTimeout(preloadNextImage, 100);
+            };
+            
+            img.onerror = function() {
+                console.error('Failed to preload image:', images[index].full);
+                hidePreloadIndicator();
+                isPreloading = false;
+                setTimeout(preloadNextImage, 100);
+            };
+            
+            img.src = images[index].full;
+        }
+        
+        // Preload gambar sekitar (sebelum dan sesudah) index yang diberikan
+        function preloadAdjacentImages(centerIndex) {
+            const adjacentIndices = [];
+            
+            // Tambahkan gambar sebelum dan sesudah (±2 gambar)
+            for (let i = -2; i <= 2; i++) {
+                const index = centerIndex + i;
+                if (index >= 0 && index < images.length && index !== centerIndex) {
+                    adjacentIndices.push(index);
+                }
+            }
+            
+            // Prioritaskan gambar yang belum di-preload
+            adjacentIndices.forEach(index => {
+                if (!preloadedImages.has(index) && !preloadQueue.includes(index)) {
+                    preloadQueue.unshift(index); // Masukkan ke depan queue
+                }
+            });
+            
+            if (!isPreloading) {
+                preloadNextImage();
+            }
+        }
+        
+        function showPreloadIndicator() {
+            document.getElementById('preloadIndicator').style.display = 'block';
+        }
+        
+        function hidePreloadIndicator() {
+            document.getElementById('preloadIndicator').style.display = 'none';
+        }
         
         // Fungsi navigasi kembali
         function goBack() {
@@ -93,6 +197,9 @@
             const imageModalElement = document.getElementById('imageModal');
             currentModal = new bootstrap.Modal(imageModalElement);
             currentModal.show();
+            
+            // Preload gambar sekitar setelah modal dibuka
+            preloadAdjacentImages(currentImageIndex);
         }
         
         function closeModal() {
@@ -101,23 +208,64 @@
             }
         }
         
+        function showModalLoading() {
+            document.getElementById('modalLoading').style.display = 'block';
+        }
+        
+        function hideModalLoading() {
+            document.getElementById('modalLoading').style.display = 'none';
+        }
+        
         // Fungsi navigasi gambar
         function nextImage() {
             currentImageIndex = (currentImageIndex + 1) % images.length;
             updateModalImage();
+            preloadAdjacentImages(currentImageIndex);
         }
         
         function prevImage() {
             currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
             updateModalImage();
+            preloadAdjacentImages(currentImageIndex);
         }
         
         function updateModalImage() {
             const modalImage = document.getElementById('modalImage');
             const imageCounter = document.getElementById('imageCounter');
             
-            modalImage.src = images[currentImageIndex];
+            // Update counter
             imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
+            
+            // Cek apakah gambar sudah di-preload
+            if (preloadedImages.has(currentImageIndex)) {
+                // Gambar sudah di-cache, langsung tampilkan
+                modalImage.src = images[currentImageIndex].full;
+                modalImage.style.display = 'block';
+                hideModalLoading();
+            } else {
+                // Gambar belum di-cache, sembunyikan gambar dan tampilkan loading
+                modalImage.style.display = 'none';
+                showModalLoading();
+                
+                // Load gambar full resolution
+                const img = new Image();
+                img.onload = function() {
+                    modalImage.src = images[currentImageIndex].full;
+                    modalImage.style.display = 'block';
+                    preloadedImages.set(currentImageIndex, img);
+                    hideModalLoading();
+                };
+                
+                img.onerror = function() {
+                    console.error('Failed to load image:', images[currentImageIndex].full);
+                    // Jika error, tampilkan thumbnail sebagai fallback
+                    modalImage.src = images[currentImageIndex].thumbnail;
+                    modalImage.style.display = 'block';
+                    hideModalLoading();
+                };
+                
+                img.src = images[currentImageIndex].full;
+            }
             
             // Update navigation button visibility
             const prevBtn = document.querySelector('.modal-prev-btn');
@@ -149,7 +297,28 @@
             }
         });
         
-
+        // Pause preloading when user is inactive
+        let preloadPaused = false;
+        let inactivityTimer;
+        
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            if (preloadPaused) {
+                preloadPaused = false;
+                preloadNextImage();
+            }
+            
+            inactivityTimer = setTimeout(() => {
+                preloadPaused = true;
+            }, 30000); // Pause setelah 30 detik tidak aktif
+        }
+        
+        // Reset timer pada user activity
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+            document.addEventListener(event, resetInactivityTimer, true);
+        });
+        
+        resetInactivityTimer();
     </script>
 </body>
 </html>

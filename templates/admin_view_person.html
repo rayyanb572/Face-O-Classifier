@@ -53,7 +53,7 @@
                                         <p class="card-text small text-truncate" title="{{ image.filename }}">{{ image.filename }}</p>
                                         <div class="d-flex justify-content-between">
                                             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" 
-                                                data-bs-target="#imageModal" 
+                                                data-bs-target="#imageDeleteModal" 
                                                 data-image-url="{{ image.url }}" 
                                                 data-image-name="{{ image.filename }}">
                                                 <i class="bi bi-eye-fill"></i> Lihat
@@ -80,11 +80,11 @@
     </div>
 
     <!-- Image Modal -->
-    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal fade" id="imageDeleteModal" tabindex="-1" aria-labelledby="imageDeleteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title text-white" id="imageModalLabel">Image Preview</h5>
+                    <h5 class="modal-title text-white" id="imageDeleteModalLabel">Image Preview</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center">
@@ -130,19 +130,19 @@
 
     <script>
         let processingModal;
-        let imageModal;
+        let imageDeleteModal;
         let currentImageFilename = '';
 
         document.addEventListener("DOMContentLoaded", function () {
             // Inisialisasi modal
             processingModal = new bootstrap.Modal(document.getElementById('processingModal'));
-            imageModal = bootstrap.Modal.getInstance(document.getElementById('imageModal')) || 
-                        new bootstrap.Modal(document.getElementById('imageModal'));
+            imageDeleteModal = bootstrap.Modal.getInstance(document.getElementById('imageDeleteModal')) || 
+                        new bootstrap.Modal(document.getElementById('imageDeleteModal'));
 
             // Handle modal gambar
-            const imageModalElement = document.getElementById('imageModal');
-            if (imageModalElement) {
-                imageModalElement.addEventListener('show.bs.modal', function (event) {
+            const imageDeleteModalElement = document.getElementById('imageDeleteModal');
+            if (imageDeleteModalElement) {
+                imageDeleteModalElement.addEventListener('show.bs.modal', function (event) {
                     const button = event.relatedTarget;
                     const imageUrl = button.getAttribute('data-image-url');
                     const imageName = button.getAttribute('data-image-name');
@@ -169,7 +169,7 @@
         function deleteImageFromModal() {
             if (confirm(`Apakah anda yakin ingin menghapus gambar "${currentImageFilename}"?`)) {
                 // Hide image modal first
-                imageModal.hide();
+                imageDeleteModal.hide();
                 
                 // Set up delete form
                 document.getElementById('deleteFilename').value = currentImageFilename;

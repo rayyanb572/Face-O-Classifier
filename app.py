@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+import io
 import os
 import random
 import shutil
@@ -9,6 +10,7 @@ import zipfile
 import json
 import hashlib
 import pickle
+from PIL import Image
 from collections import defaultdict
 from flask import Flask, jsonify, render_template, request, redirect, url_for, send_from_directory, session, flash
 from flask_session import Session
@@ -64,6 +66,44 @@ def background_classify_faces(session_id, extracted_folder_path, output_folder_n
             'progress': 0,
             'error': str(e)
         }
+
+def create_thumbnail(image_path, max_size=(300, 300), quality=85):
+    """
+    Membuat thumbnail dari gambar dengan mempertahankan rasio aspek
+    
+    Args:
+        image_path: Path ke file gambar
+        max_size: Tuple (width, height) maksimum untuk thumbnail
+        quality: Kualitas JPEG (1-100)
+    
+    Returns:
+        Tuple (thumbnail_data, format) atau None jika gagal
+    """
+    try:
+        with Image.open(image_path) as img:
+            # Konversi ke RGB jika diperlukan (untuk PNG dengan transparency)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                # Buat background putih untuk transparency
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Buat thumbnail dengan mempertahankan rasio aspek
+            img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            
+            # Simpan ke BytesIO
+            img_io = io.BytesIO()
+            img.save(img_io, format='JPEG', quality=quality, optimize=True)
+            img_io.seek(0)
+            
+            return img_io.getvalue(), 'JPEG'
+    except Exception as e:
+        print(f"Error creating thumbnail for {image_path}: {e}")
+        return None, None
 
 # --- Membersihkan file dan folder saat aplikasi mulai ---
 # Membersihkan file session
@@ -307,6 +347,43 @@ def preview_folders():
     
     return render_template('preview_folders.html', folders=folders)
 
+@app.route('/thumbnail/<path:filename>')
+def serve_thumbnail(filename):
+    """Melayani thumbnail gambar dengan resolusi rendah untuk preview cepat."""
+    output_path = session.get('output_path')
+    if not output_path:
+        return "No output directory set", 404
+
+    filename = filename.replace("\\", "/")  # Normalisasi path
+    filepath = os.path.join(output_path, filename)
+    
+    if not os.path.exists(filepath):
+        print(f"File not found: {filepath}")
+        return "File not found", 404
+
+    # Cek apakah file adalah gambar
+    if not filename.lower().endswith(('jpg', 'jpeg', 'png')):
+        return "Not an image file", 400
+
+    # Buat thumbnail
+    thumbnail_data, format_type = create_thumbnail(
+        filepath, 
+        max_size=(300, 300),  # Ukuran maksimum thumbnail
+        quality=75  # Kualitas kompresi
+    )
+    
+    if thumbnail_data is None:
+        # Fallback ke gambar asli jika thumbnail gagal dibuat
+        return send_from_directory(output_path, filename)
+    
+    # Return thumbnail sebagai response
+    from flask import Response
+    return Response(
+        thumbnail_data,
+        mimetype=f'image/{format_type.lower()}'
+    )
+
+# Update route preview_images untuk menggunakan thumbnail
 @app.route('/preview/<folder_name>')
 def preview_images(folder_name):
     """Menampilkan gambar-gambar dari folder tertentu hasil klasifikasi."""
@@ -326,10 +403,14 @@ def preview_images(folder_name):
     # Urutkan nama file secara alfanumerik
     image_filenames.sort()
 
-    images = [
-        url_for('serve_output', filename=os.path.join(folder_name, filename))
-        for filename in image_filenames
-    ]
+    # Buat data gambar dengan thumbnail dan full size URLs
+    images = []
+    for filename in image_filenames:
+        images.append({
+            'thumbnail': url_for('serve_thumbnail', filename=os.path.join(folder_name, filename)),
+            'full': url_for('serve_output', filename=os.path.join(folder_name, filename)),
+            'filename': filename
+        })
 
     return render_template('preview_images.html', images=images, folder_name=folder_name)
 
