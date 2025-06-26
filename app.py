@@ -19,8 +19,8 @@ from classify_faces import classify_faces
 from admin import admin_bp
 import config
 
-# --- Global Variables for Background Processing ---
-background_processes = {}  # Store background process status
+# --- Global Variables Background Processing ---
+background_processes = {}  
 
 # --- Utility Function ---
 def clear_folder(folder_path):
@@ -68,17 +68,7 @@ def background_classify_faces(session_id, extracted_folder_path, output_folder_n
         }
 
 def create_thumbnail(image_path, max_size=(300, 300), quality=85):
-    """
-    Membuat thumbnail dari gambar dengan mempertahankan rasio aspek
-    
-    Args:
-        image_path: Path ke file gambar
-        max_size: Tuple (width, height) maksimum untuk thumbnail
-        quality: Kualitas JPEG (1-100)
-    
-    Returns:
-        Tuple (thumbnail_data, format) atau None jika gagal
-    """
+
     try:
         with Image.open(image_path) as img:
             # Konversi ke RGB jika diperlukan (untuk PNG dengan transparency)
