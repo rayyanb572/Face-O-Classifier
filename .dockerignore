@@ -1,0 +1,7 @@
+zip
+uploads
+.venv
+__pycache__
+flask_session
+.gitignore
+tempCodeRunnerFile.py
