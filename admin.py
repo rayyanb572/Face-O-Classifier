@@ -773,7 +773,7 @@ def admin_reprocess_embeddings():
         return redirect(url_for('admin.admin_panel'))
     
     try:
-        # Get confidence threshold from form
+        # Get confidence threshold dari form
         confidence_threshold = float(request.form.get('confidence_threshold', 0.5))
         
         # Validasi rentang

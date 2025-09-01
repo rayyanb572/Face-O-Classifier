@@ -347,7 +347,7 @@ def reprocess_problem_faces(database_dir="database",
 
 # Jika dijalankan sebagai skrip, gunakan argumen baris perintah
 if __name__ == "__main__":
-    # Siapkan penguraian argumen baris perintah
+
     parser = argparse.ArgumentParser(description="Memproses ulang gambar wajah bermasalah dalam database")
     
     parser.add_argument("--database", type=str, default="database",

@@ -11,7 +11,6 @@ import hashlib
 import sys
 
 # Konfigurasi confidence threshold
-# Default value adalah 0.6, tetapi bisa diubah melalui environment variable dari embedding_manager.py
 DEFAULT_CONFIDENCE = 0.6
 confidence_threshold = float(os.environ.get('CONFIDENCE_THRESHOLD', DEFAULT_CONFIDENCE))
 
@@ -39,8 +38,6 @@ print("  4. Membuat file embeddings dan metadata baru")
 print("\nProses ini akan memakan waktu yang cukup lama tergantung pada")
 print("jumlah gambar dan spesifikasi komputer Anda.\n")
 
-# Cek apakah kode dijalankan dari embedding_manager.py
-# Jika dijalankan dari manager, asumsi konfirmasi sudah dilakukan
 if "SKIP_CONFIRMATION" in os.environ and os.environ["SKIP_CONFIRMATION"].lower() == "true":
     run_process = "y"
 else:

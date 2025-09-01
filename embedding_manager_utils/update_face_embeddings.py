@@ -246,7 +246,7 @@ def update_face_embeddings(database_dir="database", output_path="face_embeddings
     }
 
 if __name__ == "__main__":
-    # Anda dapat menyesuaikan parameter ini
+
     DATABASE_DIR = "database"
     OUTPUT_PATH = "face_embeddings.pkl"
     METADATA_PATH = "face_embeddings_metadata.pkl"
